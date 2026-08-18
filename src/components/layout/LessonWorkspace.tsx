@@ -3,8 +3,10 @@ import { PdfFileButton } from '../pdf/PdfFileButton'
 import { PdfPageCanvas } from '../pdf/PdfPageCanvas'
 import { PdfViewerControls } from '../pdf/PdfViewerControls'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
+import { RegionSelector } from '../content/RegionSelector'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
+import type { ProblemContentBlock, SourceRegion } from '../../types/content'
 import type { DocumentState, LoadedPdfDocument, PdfLoadStatus, PdfViewportMetrics, ZoomMode } from '../../types/pdf'
 
 interface LessonWorkspaceProps {
@@ -28,6 +30,9 @@ interface LessonWorkspaceProps {
   annotationsVisible: boolean
   onAddStroke: (stroke: AnnotationStroke) => void
   onEraseStrokes: (strokeIds: string[]) => void
+  problems: ProblemContentBlock[]
+  nextProblemTitle: string
+  onSaveProblem: (region: SourceRegion, title: string) => void
 }
 
 const FIT_EDGE_GAP = 2
@@ -53,6 +58,9 @@ export function LessonWorkspace({
   annotationsVisible,
   onAddStroke,
   onEraseStrokes,
+  problems,
+  nextProblemTitle,
+  onSaveProblem,
 }: LessonWorkspaceProps) {
   const [viewportElement, setViewportElement] = useState<HTMLDivElement | null>(null)
   const viewportSize = useElementSize(viewportElement)
@@ -100,6 +108,9 @@ export function LessonWorkspace({
     && Math.abs(pageMetrics.scale - documentState.scale) < 0.005
     ? pageMetrics
     : null
+  const currentPageProblems = documentState
+    ? problems.filter((problem) => problem.sourcePage === documentState.currentPage)
+    : []
 
   return (
     <section className="lesson-workspace" aria-labelledby="workspace-title">
@@ -155,6 +166,14 @@ export function LessonWorkspace({
                 )}
               </div>
               <div className="workspace-ui-layer workspace-ui-layer--overlay" aria-live="polite">
+                {annotationMetrics && (
+                  <RegionSelector
+                    active={annotationTool === 'region-select'}
+                    defaultTitle={nextProblemTitle}
+                    savedProblems={currentPageProblems}
+                    onSave={onSaveProblem}
+                  />
+                )}
                 {isRendering && <div className="page-loading"><span className="loading-spinner" aria-hidden="true" />페이지를 표시하는 중입니다.</div>}
                 {renderError && <div className="page-render-error" role="alert">{renderError}</div>}
               </div>

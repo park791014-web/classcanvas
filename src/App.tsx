@@ -3,8 +3,12 @@ import { LessonNavigator } from './components/layout/LessonNavigator'
 import { LessonWorkspace } from './components/layout/LessonWorkspace'
 import { ToolBar } from './components/layout/ToolBar'
 import { TopBar } from './components/layout/TopBar'
+import { ProblemFocusView } from './components/content/ProblemFocusView'
 import { useAnnotations } from './hooks/useAnnotations'
+import { useContentBlocks } from './hooks/useContentBlocks'
 import { usePdfDocument, validatePdfFile } from './hooks/usePdfDocument'
+import { INITIAL_PROBLEM_WORKSPACE_HEIGHT, useProblemWorkspaces } from './hooks/useProblemWorkspaces'
+import type { ProblemContentBlock, SourceRegion } from './types/content'
 import type { DocumentState, ZoomMode } from './types/pdf'
 
 const MIN_SCALE = 0.5
@@ -15,7 +19,21 @@ function App() {
   const { loadedPdf, status, error, openPdf } = usePdfDocument()
   const [documentState, setDocumentState] = useState<DocumentState | null>(null)
   const [selectionError, setSelectionError] = useState<string | null>(null)
-  const annotations = useAnnotations(loadedPdf?.documentId ?? null, documentState?.currentPage ?? 1)
+  const [focusedProblemId, setFocusedProblemId] = useState<string | null>(null)
+  const contentBlocks = useContentBlocks(loadedPdf?.documentId ?? null)
+  const pageAnnotations = useAnnotations(loadedPdf?.documentId ?? null, documentState?.currentPage ?? 1)
+  const problemAnnotationDocumentId = loadedPdf && focusedProblemId
+    ? `problem:${loadedPdf.documentId}:${focusedProblemId}`
+    : null
+  const problemAnnotations = useAnnotations(problemAnnotationDocumentId, 1)
+  const problemWorkspace = useProblemWorkspaces(problemAnnotationDocumentId)
+  const focusedProblem = contentBlocks.problems.find((problem) => problem.id === focusedProblemId) ?? null
+  const activeAnnotations = focusedProblem ? problemAnnotations : pageAnnotations
+
+  useEffect(() => {
+    if (!problemAnnotationDocumentId) return
+    problemAnnotations.migrateCurrentToLogicalY(INITIAL_PROBLEM_WORKSPACE_HEIGHT)
+  }, [problemAnnotationDocumentId, problemAnnotations.migrateCurrentToLogicalY])
 
   useEffect(() => {
     if (status === 'loading' || status === 'error') {
@@ -25,6 +43,8 @@ function App() {
 
   useEffect(() => {
     if (!loadedPdf) return
+
+    setFocusedProblemId(null)
 
     setDocumentState({
       fileName: loadedPdf.fileName,
@@ -44,10 +64,12 @@ function App() {
     }
 
     setSelectionError(null)
+    setFocusedProblemId(null)
     void openPdf(file)
   }, [openPdf])
 
   const changePage = useCallback((pageNumber: number) => {
+    setFocusedProblemId(null)
     setDocumentState((current) => {
       if (!current) return current
 
@@ -67,6 +89,7 @@ function App() {
   }, [])
 
   const movePage = useCallback((offset: number) => {
+    setFocusedProblemId(null)
     setDocumentState((current) => current ? {
       ...current,
       currentPage: Math.min(current.totalPages, Math.max(1, current.currentPage + offset)),
@@ -88,23 +111,23 @@ function App() {
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault()
-        if (event.shiftKey) annotations.redo()
-        else annotations.undo()
+        if (event.shiftKey) activeAnnotations.redo()
+        else activeAnnotations.undo()
         return
       }
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
         event.preventDefault()
-        annotations.redo()
+        activeAnnotations.redo()
         return
       }
 
-      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+      if (!focusedProblem && (event.key === 'ArrowLeft' || event.key === 'PageUp')) {
         event.preventDefault()
         movePage(-1)
       }
 
-      if (event.key === 'ArrowRight' || event.key === 'PageDown') {
+      if (!focusedProblem && (event.key === 'ArrowRight' || event.key === 'PageDown')) {
         event.preventDefault()
         movePage(1)
       }
@@ -112,10 +135,34 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [annotations, movePage])
+  }, [activeAnnotations, focusedProblem, movePage])
 
   const activeState = loadedPdf ? documentState : null
   const visibleError = selectionError ?? error
+
+  const handleSaveProblem = useCallback((region: SourceRegion, title: string) => {
+    if (!activeState) return
+    contentBlocks.addProblem({
+      sourceFileName: activeState.fileName,
+      sourcePage: activeState.currentPage,
+      sourceRegion: region,
+      title,
+    })
+    pageAnnotations.setActiveTool('none')
+  }, [activeState, contentBlocks, pageAnnotations])
+
+  const handleSelectProblem = useCallback((problem: ProblemContentBlock) => {
+    setDocumentState((current) => current ? { ...current, currentPage: problem.sourcePage } : current)
+    setFocusedProblemId(problem.id)
+  }, [])
+
+  const handleDeleteProblem = useCallback((problem: ProblemContentBlock) => {
+    if (!loadedPdf) return
+    problemAnnotations.removeDocumentAnnotations(`problem:${loadedPdf.documentId}:${problem.id}`)
+    problemWorkspace.removeWorkspace(`problem:${loadedPdf.documentId}:${problem.id}`)
+    contentBlocks.removeProblem(problem.id)
+    if (focusedProblemId === problem.id) setFocusedProblemId(null)
+  }, [contentBlocks, focusedProblemId, loadedPdf, problemAnnotations, problemWorkspace])
 
   return (
     <div className="app-shell">
@@ -128,8 +175,31 @@ function App() {
           onPageChange={changePage}
           onPreviousPage={() => movePage(-1)}
           onNextPage={() => movePage(1)}
+          problems={contentBlocks.problems}
+          focusedProblemId={focusedProblemId}
+          onSelectProblem={handleSelectProblem}
+          onRenameProblem={contentBlocks.renameProblem}
+          onDeleteProblem={handleDeleteProblem}
         />
-        <LessonWorkspace
+        {focusedProblem && loadedPdf ? (
+          <section className="lesson-workspace" aria-label="문제 집중 보기">
+            <ProblemFocusView
+              loadedPdf={loadedPdf}
+              problem={focusedProblem}
+              annotationStrokes={problemAnnotations.strokes}
+              annotationTool={problemAnnotations.activeTool}
+              annotationSettings={problemAnnotations.settings}
+              annotationsVisible={problemAnnotations.isVisible}
+              onAddStroke={problemAnnotations.addStroke}
+              onEraseStrokes={problemAnnotations.eraseStrokes}
+              onReturnToTextbook={() => setFocusedProblemId(null)}
+              workspaceHeight={problemWorkspace.workspaceHeight}
+              canExpandWorkspace={problemWorkspace.canExpand}
+              onExpandWorkspace={problemWorkspace.expandWorkspace}
+            />
+          </section>
+        ) : (
+          <LessonWorkspace
           loadedPdf={loadedPdf}
           documentState={activeState}
           status={status}
@@ -144,26 +214,32 @@ function App() {
           onPageFit={() => activeState && changeScale(activeState.scale, 'page-fit')}
           onWidthFit={() => activeState && changeScale(activeState.scale, 'width-fit')}
           onScaleChange={changeScale}
-          annotationStrokes={annotations.strokes}
-          annotationTool={annotations.activeTool}
-          annotationSettings={annotations.settings}
-          annotationsVisible={annotations.isVisible}
-          onAddStroke={annotations.addStroke}
-          onEraseStrokes={annotations.eraseStrokes}
-        />
+          annotationStrokes={pageAnnotations.strokes}
+          annotationTool={pageAnnotations.activeTool}
+          annotationSettings={pageAnnotations.settings}
+          annotationsVisible={pageAnnotations.isVisible}
+          onAddStroke={pageAnnotations.addStroke}
+          onEraseStrokes={pageAnnotations.eraseStrokes}
+          problems={contentBlocks.problems}
+          nextProblemTitle={contentBlocks.nextProblemTitle}
+          onSaveProblem={handleSaveProblem}
+          />
+        )}
       </main>
       <ToolBar
         hasDocument={Boolean(activeState)}
-        activeTool={annotations.activeTool}
-        settings={annotations.settings}
-        isVisible={annotations.isVisible}
-        canUndo={annotations.canUndo}
-        canRedo={annotations.canRedo}
-        onToolChange={annotations.setActiveTool}
-        onStyleChange={annotations.updateDrawingStyle}
-        onUndo={annotations.undo}
-        onRedo={annotations.redo}
-        onToggleVisibility={annotations.toggleVisibility}
+        activeTool={activeAnnotations.activeTool}
+        settings={activeAnnotations.settings}
+        isVisible={activeAnnotations.isVisible}
+        canUndo={activeAnnotations.canUndo}
+        canRedo={activeAnnotations.canRedo}
+        onToolChange={activeAnnotations.setActiveTool}
+        onStyleChange={activeAnnotations.updateDrawingStyle}
+        onUndo={activeAnnotations.undo}
+        onRedo={activeAnnotations.redo}
+        onToggleVisibility={activeAnnotations.toggleVisibility}
+        allowRegionSelect={!focusedProblem}
+        contextLabel={focusedProblem ? '문제 풀이' : '교과서'}
       />
     </div>
   )

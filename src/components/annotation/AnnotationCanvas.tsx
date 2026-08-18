@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react'
 import type {
   AnnotationSettings,
+  AnnotationCoordinateMode,
+  AnnotationPoint,
   AnnotationStroke,
   AnnotationTool,
   DrawingTool,
-  NormalizedPoint,
   StrokeWidthPreset,
 } from '../../types/annotation'
 import type { PdfViewportMetrics } from '../../types/pdf'
@@ -17,6 +18,9 @@ interface AnnotationCanvasProps {
   isVisible: boolean
   onAddStroke: (stroke: AnnotationStroke) => void
   onEraseStrokes: (strokeIds: string[]) => void
+  ariaLabel?: string
+  coordinateScope?: 'pdf-page' | 'problem-workspace'
+  coordinateMode?: AnnotationCoordinateMode
 }
 
 const WIDTHS: Record<DrawingTool, Record<StrokeWidthPreset, number>> = {
@@ -56,7 +60,10 @@ function drawStroke(
 ) {
   if (stroke.points.length === 0) return
 
-  const points = stroke.points.map((point) => ({ x: point.x * width, y: point.y * height }))
+  const points = stroke.points.map((point) => ({
+    x: point.x * width,
+    y: stroke.coordinateMode === 'problem-logical-y' ? point.y : point.y * height,
+  }))
   context.save()
   context.strokeStyle = stroke.color
   context.fillStyle = stroke.color
@@ -90,29 +97,35 @@ function drawStroke(
 
 function strokeIsHit(
   stroke: AnnotationStroke,
-  point: NormalizedPoint,
+  point: AnnotationPoint,
+  pointMode: AnnotationCoordinateMode,
   width: number,
   height: number,
 ) {
   const pointX = point.x * width
-  const pointY = point.y * height
+  const pointY = pointMode === 'problem-logical-y' ? point.y : point.y * height
   const strokeRadius = stroke.normalizedWidth * Math.min(width, height) / 2
   const hitRadius = ERASER_RADIUS + strokeRadius
 
   if (stroke.points.length === 1) {
-    return Math.hypot(pointX - stroke.points[0].x * width, pointY - stroke.points[0].y * height) <= hitRadius
+    const strokePointY = stroke.coordinateMode === 'problem-logical-y'
+      ? stroke.points[0].y
+      : stroke.points[0].y * height
+    return Math.hypot(pointX - stroke.points[0].x * width, pointY - strokePointY) <= hitRadius
   }
 
   return stroke.points.some((current, index) => {
     if (index === 0) return false
     const previous = stroke.points[index - 1]
+    const previousY = stroke.coordinateMode === 'problem-logical-y' ? previous.y : previous.y * height
+    const currentY = stroke.coordinateMode === 'problem-logical-y' ? current.y : current.y * height
     return distanceToSegment(
       pointX,
       pointY,
       previous.x * width,
-      previous.y * height,
+      previousY,
       current.x * width,
-      current.y * height,
+      currentY,
     ) <= hitRadius
   })
 }
@@ -129,6 +142,9 @@ export function AnnotationCanvas({
   isVisible,
   onAddStroke,
   onEraseStrokes,
+  ariaLabel = 'PDF 판서 영역',
+  coordinateScope = 'pdf-page',
+  coordinateMode = 'normalized',
 }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const activePointerRef = useRef<number | null>(null)
@@ -172,16 +188,18 @@ export function AnnotationCanvas({
     redraw()
   }, [metrics, redraw, strokes])
 
-  const toNormalizedPoint = useCallback((event: PointerEvent | ReactPointerEvent<HTMLCanvasElement>): NormalizedPoint => {
+  const toAnnotationPoint = useCallback((event: PointerEvent | ReactPointerEvent<HTMLCanvasElement>): AnnotationPoint => {
     const bounds = canvasRef.current?.getBoundingClientRect()
     if (!bounds) return { x: 0, y: 0, pressure: 0.5 }
 
     return {
       x: clamp((event.clientX - bounds.left) / bounds.width),
-      y: clamp((event.clientY - bounds.top) / bounds.height),
+      y: coordinateMode === 'problem-logical-y'
+        ? Math.min(bounds.height, Math.max(0, event.clientY - bounds.top))
+        : clamp((event.clientY - bounds.top) / bounds.height),
       pressure: event.pressure > 0 ? event.pressure : 0.5,
     }
-  }, [])
+  }, [coordinateMode])
 
   const previewLatestSegment = useCallback((stroke: AnnotationStroke) => {
     const context = getContext()
@@ -190,24 +208,24 @@ export function AnnotationCanvas({
     drawStroke(context, { ...stroke, points: recentPoints }, metrics.width, metrics.height)
   }, [getContext, metrics.height, metrics.width])
 
-  const eraseAt = useCallback((point: NormalizedPoint) => {
+  const eraseAt = useCallback((point: AnnotationPoint) => {
     let changed = false
     strokesRef.current.forEach((stroke) => {
-      if (!erasedIdsRef.current.has(stroke.id) && strokeIsHit(stroke, point, metrics.width, metrics.height)) {
+      if (!erasedIdsRef.current.has(stroke.id) && strokeIsHit(stroke, point, coordinateMode, metrics.width, metrics.height)) {
         erasedIdsRef.current.add(stroke.id)
         changed = true
       }
     })
     if (changed) redraw(erasedIdsRef.current)
-  }, [metrics.height, metrics.width, redraw])
+  }, [coordinateMode, metrics.height, metrics.width, redraw])
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!isVisible || activeTool === 'none' || event.button !== 0) return
+    if (!isVisible || (activeTool !== 'pen' && activeTool !== 'highlighter' && activeTool !== 'eraser') || event.button !== 0) return
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
     activePointerRef.current = event.pointerId
 
-    const point = toNormalizedPoint(event)
+    const point = toAnnotationPoint(event)
     if (activeTool === 'eraser') {
       erasedIdsRef.current.clear()
       eraseAt(point)
@@ -222,6 +240,7 @@ export function AnnotationCanvas({
       color: style.color,
       opacity: activeTool === 'highlighter' ? 0.32 : 1,
       normalizedWidth: WIDTHS[activeTool][style.widthPreset],
+      coordinateMode,
     }
     activeStrokeRef.current = stroke
     previewLatestSegment(stroke)
@@ -236,14 +255,14 @@ export function AnnotationCanvas({
       : [event.nativeEvent]
 
     if (activeTool === 'eraser') {
-      nativeEvents.forEach((nativeEvent) => eraseAt(toNormalizedPoint(nativeEvent)))
+      nativeEvents.forEach((nativeEvent) => eraseAt(toAnnotationPoint(nativeEvent)))
       return
     }
 
     const stroke = activeStrokeRef.current
     if (!stroke) return
     nativeEvents.forEach((nativeEvent) => {
-      stroke.points.push(toNormalizedPoint(nativeEvent))
+      stroke.points.push(toAnnotationPoint(nativeEvent))
       previewLatestSegment(stroke)
     })
   }
@@ -269,13 +288,22 @@ export function AnnotationCanvas({
     erasedIdsRef.current.clear()
   }
 
-  const isInteractive = isVisible && activeTool !== 'none'
+  const isInteractive = isVisible && (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser')
+  const logicalYValues = coordinateMode === 'problem-logical-y'
+    ? strokes.flatMap((stroke) => stroke.points.map((point) => point.y))
+    : []
+  const logicalYRange = logicalYValues.length > 0
+    ? `${Math.min(...logicalYValues).toFixed(2)}:${Math.max(...logicalYValues).toFixed(2)}`
+    : ''
 
   return (
     <canvas
       ref={canvasRef}
       className={`annotation-canvas${isInteractive ? ' annotation-canvas--interactive' : ''}`}
-      aria-label="PDF 판서 영역"
+      aria-label={ariaLabel}
+      data-coordinate-scope={coordinateScope}
+      data-coordinate-mode={coordinateMode}
+      data-logical-y-range={logicalYRange}
       data-page-number={metrics.pageNumber}
       data-stroke-count={strokes.length}
       data-tool={activeTool}

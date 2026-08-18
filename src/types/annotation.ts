@@ -1,10 +1,12 @@
-export type AnnotationTool = 'none' | 'pen' | 'highlighter' | 'eraser'
+export type AnnotationTool = 'none' | 'pen' | 'highlighter' | 'eraser' | 'region-select'
 
-export type DrawingTool = Exclude<AnnotationTool, 'none' | 'eraser'>
+export type DrawingTool = Exclude<AnnotationTool, 'none' | 'eraser' | 'region-select'>
 
 export type StrokeWidthPreset = 'thin' | 'normal' | 'thick'
 
-export interface NormalizedPoint {
+export type AnnotationCoordinateMode = 'normalized' | 'problem-logical-y'
+
+export interface AnnotationPoint {
   x: number
   y: number
   pressure: number
@@ -13,10 +15,11 @@ export interface NormalizedPoint {
 export interface AnnotationStroke {
   id: string
   tool: DrawingTool
-  points: NormalizedPoint[]
+  points: AnnotationPoint[]
   color: string
   opacity: number
   normalizedWidth: number
+  coordinateMode?: AnnotationCoordinateMode
 }
 
 export interface DrawingStyle {
@@ -39,4 +42,3 @@ export interface DocumentAnnotations {
   pages: Record<number, PageAnnotationHistory>
   isVisible: boolean
 }
-

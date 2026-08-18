@@ -151,6 +151,50 @@ export function useAnnotations(documentId: string | null, pageNumber: number) {
     }))
   }, [])
 
+  const removeDocumentAnnotations = useCallback((targetDocumentId: string) => {
+    setStore((currentStore) => {
+      if (!currentStore[targetDocumentId]) return currentStore
+      const nextStore = { ...currentStore }
+      delete nextStore[targetDocumentId]
+      return nextStore
+    })
+  }, [])
+
+  const migrateCurrentToLogicalY = useCallback((previousWorkspaceHeight: number) => {
+    if (!documentId) return
+
+    const migrateStrokes = (strokes: AnnotationStroke[]) => strokes.map((stroke) => stroke.coordinateMode
+      ? stroke
+      : {
+          ...stroke,
+          coordinateMode: 'problem-logical-y' as const,
+          points: stroke.points.map((point) => ({ ...point, y: point.y * previousWorkspaceHeight })),
+        })
+
+    setStore((currentStore) => {
+      const documentAnnotations = currentStore[documentId]
+      const pageHistory = documentAnnotations?.pages[pageNumber]
+      if (!documentAnnotations || !pageHistory) return currentStore
+      const allStrokes = [...pageHistory.past.flat(), ...pageHistory.present, ...pageHistory.future.flat()]
+      if (allStrokes.every((stroke) => stroke.coordinateMode)) return currentStore
+
+      return {
+        ...currentStore,
+        [documentId]: {
+          ...documentAnnotations,
+          pages: {
+            ...documentAnnotations.pages,
+            [pageNumber]: {
+              past: pageHistory.past.map(migrateStrokes),
+              present: migrateStrokes(pageHistory.present),
+              future: pageHistory.future.map(migrateStrokes),
+            },
+          },
+        },
+      }
+    })
+  }, [documentId, pageNumber])
+
   return {
     activeTool,
     setActiveTool,
@@ -165,5 +209,7 @@ export function useAnnotations(documentId: string | null, pageNumber: number) {
     canRedo: Boolean(currentHistory?.future.length),
     isVisible,
     toggleVisibility,
+    removeDocumentAnnotations,
+    migrateCurrentToLogicalY,
   }
 }

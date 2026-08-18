@@ -13,6 +13,8 @@ interface ToolBarProps {
   onUndo: () => void
   onRedo: () => void
   onToggleVisibility: () => void
+  allowRegionSelect: boolean
+  contextLabel?: string
 }
 
 const TOOLS: { tool: AnnotationTool; label: string }[] = [
@@ -20,6 +22,7 @@ const TOOLS: { tool: AnnotationTool; label: string }[] = [
   { tool: 'pen', label: '펜' },
   { tool: 'highlighter', label: '형광펜' },
   { tool: 'eraser', label: '지우개' },
+  { tool: 'region-select', label: '영역 선택' },
 ]
 
 const COLORS = [
@@ -48,6 +51,8 @@ export function ToolBar({
   onUndo,
   onRedo,
   onToggleVisibility,
+  allowRegionSelect,
+  contextLabel = 'PDF',
 }: ToolBarProps) {
   const drawingTool = activeTool === 'pen' || activeTool === 'highlighter' ? activeTool : null
   const drawingStyle = drawingTool ? settings[drawingTool] : null
@@ -58,7 +63,7 @@ export function ToolBar({
         <span className="toolbar-grip" aria-hidden="true" />
         <div>
           <strong>판서 도구</strong>
-          <span>{hasDocument ? '도구를 선택해 PDF 위에 판서하세요.' : '수업 자료를 불러온 뒤 사용할 수 있습니다.'}</span>
+          <span>{hasDocument ? `${contextLabel} 도구를 선택하세요.` : '수업 자료를 불러온 뒤 사용할 수 있습니다.'}</span>
         </div>
       </div>
 
@@ -70,7 +75,11 @@ export function ToolBar({
               key={tool}
               className={activeTool === tool ? 'is-active' : undefined}
               aria-pressed={activeTool === tool}
-              disabled={!hasDocument || (!isVisible && tool !== 'none')}
+              disabled={
+                !hasDocument
+                || (tool === 'region-select' && !allowRegionSelect)
+                || (!isVisible && tool !== 'none' && tool !== 'region-select')
+              }
               onClick={() => onToolChange(tool)}
             >
               {label}
@@ -110,6 +119,8 @@ export function ToolBar({
                 ))}
               </div>
             </>
+          ) : activeTool === 'region-select' ? (
+            <span className="drawing-style-hint">PDF 위에서 문제 전체를 드래그해 선택하세요.</span>
           ) : (
             <span className="drawing-style-hint">펜 또는 형광펜을 선택하면 색상과 굵기를 조절할 수 있습니다.</span>
           )}
