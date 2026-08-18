@@ -29,10 +29,11 @@ button, input, textarea, select { font: inherit; }
 
 .top-bar {
   z-index: 10;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   padding: 0 28px;
+  gap: 24px;
   color: #fff;
   background: #14213a;
   border-bottom: 1px solid #26344f;
@@ -57,9 +58,9 @@ button, input, textarea, select { font: inherit; }
 }
 
 .brand-block h1 { margin: 0; font-size: 23px; line-height: 1.2; letter-spacing: -.025em; }
-.material-status { gap: 10px; color: #d8e0ed; font-size: 16px; font-weight: 600; }
-.material-status { min-width: 0; max-width: min(52vw, 760px); }
-.material-status > span:last-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.material-status { min-width: 0; gap: 8px; color: #d8e0ed; font-size: 16px; font-weight: 600; }
+.material-file-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.material-page { flex: none; white-space: nowrap; }
 .status-indicator {
   width: 9px;
   height: 9px;
@@ -69,12 +70,52 @@ button, input, textarea, select { font: inherit; }
 }
 
 .lesson-layout {
+  position: relative;
   display: grid;
-  grid-template-columns: clamp(250px, 18vw, 310px) minmax(0, 1fr);
+  grid-template-columns: clamp(184px, 13.1vw, 232px) minmax(0, 1fr);
   min-height: 0;
   padding: 16px;
   gap: 16px;
 }
+
+.pdf-drop-overlay {
+  z-index: 40;
+  position: absolute;
+  inset: 16px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 32px;
+  color: #163b78;
+  text-align: center;
+  pointer-events: none;
+  background: rgb(244 248 255 / 94%);
+  border: 3px dashed #4f7fd7;
+  box-shadow: 0 10px 30px rgb(29 59 108 / 14%);
+}
+
+.pdf-drop-overlay strong { font-size: clamp(26px, 2.2vw, 38px); letter-spacing: -.03em; }
+.pdf-drop-overlay span { margin-top: 12px; color: #53657e; font-size: 16px; font-weight: 700; }
+.pdf-drop-error {
+  z-index: 41;
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  display: flex;
+  min-width: min(420px, calc(100% - 56px));
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 12px 16px;
+  gap: 18px;
+  color: #8a2c20;
+  font-size: 14px;
+  font-weight: 800;
+  transform: translateX(-50%);
+  background: #fff4f2;
+  border: 1px solid #e9aaa2;
+  box-shadow: 0 8px 24px rgb(63 38 35 / 14%);
+}
+.pdf-drop-error button { min-height: 34px; padding: 5px 10px; }
 
 .lesson-navigator, .lesson-workspace {
   min-width: 0;
@@ -84,7 +125,7 @@ button, input, textarea, select { font: inherit; }
 }
 
 .lesson-navigator { display: flex; flex-direction: column; overflow: hidden; }
-.panel-heading { padding: 24px 24px 20px; border-bottom: 1px solid #e3e7ee; }
+.panel-heading { padding: 20px 17px 17px; border-bottom: 1px solid #e3e7ee; }
 .eyebrow {
   margin: 0 0 6px;
   color: #2563eb;
@@ -248,14 +289,28 @@ button, input, textarea, select { font: inherit; }
 
 @media (max-width: 1500px) {
   .app-shell { grid-template-rows: 66px minmax(0, 1fr) 80px; }
-  .lesson-layout { grid-template-columns: 250px minmax(0, 1fr); padding: 12px; gap: 12px; }
-  .panel-heading { padding: 20px; }
+  .top-bar { padding-inline: 18px; gap: 16px; }
+  .lesson-layout { grid-template-columns: clamp(184px, 13.1vw, 232px) minmax(0, 1fr); padding: 12px; gap: 12px; }
+  .pdf-drop-overlay { inset: 12px; }
+  .panel-heading { padding: 17px 14px 15px; }
   .future-groups { padding: 14px 16px; }
   .workspace-ui-layer { padding: 32px; }
   .tool-bar { padding-inline: 16px; gap: 12px; }
   .toolbar-label > div > span { display: none; }
   .drawing-style-controls { min-width: 220px; padding-inline: 8px; gap: 7px; }
   .tool-button-group button, .width-controls button, .history-controls button { padding-inline: 8px; }
+}
+
+@media (max-width: 1320px) {
+  .top-bar { grid-template-columns: auto minmax(120px, 1fr) auto; padding-inline: 14px; gap: 12px; }
+  .brand-block { gap: 9px; }
+  .brand-mark { width: 32px; height: 32px; }
+  .brand-block h1 { font-size: 20px; }
+  .material-status { font-size: 14px; }
+  .topbar-zoom-controls { gap: 4px; }
+  .topbar-zoom-controls button { min-width: 34px; padding-inline: 5px; }
+  .topbar-zoom-controls .fit-mode-button { min-width: 76px; }
+  .topbar-zoom-controls output { min-width: 46px; }
 }
 
 @media (max-height: 820px) {
@@ -314,7 +369,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   min-height: 0;
 }
 
-.document-summary, .navigator-page-control { padding: 22px 20px; }
+.document-summary, .navigator-page-control { padding: 18px 14px; }
 .document-summary { border-bottom: 1px solid #e3e7ee; }
 .navigator-section-label {
   margin: 0 0 10px;
@@ -354,9 +409,9 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 .page-total { min-width: 24px; color: #68758a; font-size: 15px; font-weight: 700; }
 .page-number-form--compact { justify-content: flex-start; gap: 7px; }
 .page-number-form--compact input { width: 58px; }
-.navigator-step-buttons { display: grid; grid-template-columns: 1fr 1fr; margin-top: 12px; gap: 8px; }
+.navigator-step-buttons { display: grid; grid-template-columns: 1fr 1fr; margin-top: 10px; gap: 6px; }
 .navigator-step-buttons button { min-height: 40px; font-weight: 700; }
-.navigator-file-action { padding: 18px 20px; background: #f7f9fb; border-top: 1px solid #e3e7ee; }
+.navigator-file-action { padding: 14px; background: #f7f9fb; border-top: 1px solid #e3e7ee; }
 .navigator-file-action .file-button { width: 100%; }
 .navigator-file-action p { margin: 10px 0 0; color: #68758a; font-size: 12px; line-height: 1.5; }
 .navigator-empty-state .file-button { margin-top: 20px; }
@@ -364,7 +419,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 .navigator-content-blocks {
   flex: 1;
   min-height: 0;
-  padding: 16px 14px;
+  padding: 13px 9px;
   overflow-y: auto;
   background: #fbfcfd;
   border-top: 1px solid #e3e7ee;
@@ -422,7 +477,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 .problem-open-button span { overflow: hidden; font-weight: 750; white-space: nowrap; text-overflow: ellipsis; }
 .problem-open-button small { flex: none; color: #6f7b8e; font-size: 11px; }
 .problem-item-actions { display: flex; align-items: center; padding-right: 5px; gap: 3px; }
-.problem-item-actions button { min-width: 38px; min-height: 34px; padding: 4px; font-size: 11px; }
+.problem-item-actions button { min-width: 34px; min-height: 36px; padding: 4px; font-size: 11px; }
 .problem-rename-form, .problem-delete-confirm { grid-column: 1 / -1; padding: 8px; }
 .problem-rename-form { display: grid; grid-template-columns: 1fr auto auto; gap: 5px; }
 .problem-rename-form input { min-width: 0; height: 36px; padding: 5px 7px; border: 1px solid #aeb9c9; }
@@ -434,38 +489,25 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 
 .pdf-workspace {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   width: 100%;
   height: 100%;
   min-width: 0;
   min-height: 0;
 }
 
-.pdf-viewer-controls {
-  z-index: 8;
-  display: grid;
-  grid-template-columns: minmax(118px, auto) minmax(350px, 1fr) minmax(300px, auto);
-  align-items: center;
-  min-width: 0;
-  min-height: 60px;
-  padding: 9px 14px;
-  gap: 16px;
-  background: #fff;
-  border-bottom: 1px solid #d7dee8;
-}
-
-.page-controls, .zoom-controls { display: flex; align-items: center; justify-content: center; gap: 7px; }
-.page-controls > button { min-width: 74px; height: 40px; padding: 6px 10px; font-weight: 750; }
-.zoom-controls { justify-content: flex-end; }
-.zoom-controls button { min-width: 40px; height: 40px; padding: 6px 10px; font-size: 15px; font-weight: 750; }
-.zoom-controls .fit-mode-button { min-width: 92px; }
-.zoom-controls button.is-active { color: #1d4ed8; background: #eef4ff; border-color: #7aa2f7; }
-.zoom-controls output { min-width: 58px; font-size: 14px; font-weight: 800; text-align: center; }
+.topbar-zoom-controls { display: flex; flex: none; align-items: center; gap: 6px; }
+.topbar-zoom-controls button { min-width: 36px; height: 36px; padding: 5px 9px; color: #e5ebf4; font-size: 14px; font-weight: 750; background: #1d2c48; border-color: #43516b; }
+.topbar-zoom-controls button:hover:not(:disabled) { color: #fff; background: #263956; border-color: #70809b; }
+.topbar-zoom-controls .fit-mode-button { min-width: 86px; }
+.topbar-zoom-controls button.is-active { color: #fff; background: #2559bd; border-color: #75a0f2; }
+.topbar-zoom-controls button:disabled { color: #8390a4; background: #1a2740; border-color: #344159; }
+.topbar-zoom-controls output { min-width: 52px; color: #fff; font-size: 13px; font-weight: 800; text-align: center; }
 
 .viewer-alert {
   z-index: 12;
   position: absolute;
-  top: 69px;
+  top: 16px;
   right: 16px;
   left: 16px;
   display: flex;
@@ -652,6 +694,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 }
 
 .problem-crop-canvas { display: block; max-width: 100%; margin-inline: auto; background: #fff; }
+.problem-crop-canvas--adaptive { max-width: none; }
 .problem-solution-scroll { min-width: 0; min-height: 0; padding-bottom: 16px; overflow: auto; scrollbar-color: #a9b4c4 #e8edf3; }
 .problem-solution-section { margin-bottom: 16px; }
 .solution-space-heading p { margin: 0 0 4px; color: #2563eb; font-size: 12px; font-weight: 800; }
@@ -768,11 +811,8 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) { .loading-spinner { animation: none; border-top-color: #2563eb; } }
 
 @media (max-width: 1500px) {
-  .pdf-viewer-controls { grid-template-columns: auto minmax(320px, 1fr) minmax(276px, auto); min-height: 56px; padding: 7px 10px; gap: 10px; }
-  .pdf-viewer-controls > .file-button { padding-inline: 10px; }
-  .page-controls > button { min-width: 42px; }
-  .page-controls > button span { display: none; }
-  .zoom-controls .fit-mode-button { min-width: 86px; }
+  .topbar-zoom-controls button { height: 34px; padding-inline: 7px; }
+  .topbar-zoom-controls .fit-mode-button { min-width: 80px; }
   .pdf-scroll-viewport { padding: 16px; }
   .document-summary, .navigator-page-control { padding: 18px 16px; }
   .navigator-file-action { padding: 15px 16px; }

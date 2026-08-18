@@ -79,7 +79,7 @@ export function LessonNavigator({
         </div>
       ) : (
         <>
-          <button type="button" className="problem-open-button" onClick={() => onSelectProblem(problem)}>
+          <button type="button" className="problem-open-button" title={problem.title} onClick={() => onSelectProblem(problem)}>
             <span>{problem.title}</span>
             <small>p.{problem.sourcePage}</small>
           </button>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { PdfFileButton } from '../pdf/PdfFileButton'
 import { PdfPageCanvas } from '../pdf/PdfPageCanvas'
-import { PdfViewerControls } from '../pdf/PdfViewerControls'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
 import { RegionSelector } from '../content/RegionSelector'
 import { useElementSize } from '../../hooks/useElementSize'
@@ -16,13 +15,6 @@ interface LessonWorkspaceProps {
   error: string | null
   onDismissError: () => void
   onFileSelected: (file: File) => void
-  onPageChange: (pageNumber: number) => void
-  onPreviousPage: () => void
-  onNextPage: () => void
-  onZoomOut: () => void
-  onZoomIn: () => void
-  onPageFit: () => void
-  onWidthFit: () => void
   onScaleChange: (scale: number, zoomMode?: ZoomMode) => void
   annotationStrokes: AnnotationStroke[]
   annotationTool: AnnotationTool
@@ -44,13 +36,6 @@ export function LessonWorkspace({
   error,
   onDismissError,
   onFileSelected,
-  onPageChange,
-  onPreviousPage,
-  onNextPage,
-  onZoomOut,
-  onZoomIn,
-  onPageFit,
-  onWidthFit,
   onScaleChange,
   annotationStrokes,
   annotationTool,
@@ -117,18 +102,6 @@ export function LessonWorkspace({
       {hasDocument && loadedPdf && documentState ? (
         <div className="pdf-workspace">
           <h2 className="visually-hidden" id="workspace-title">PDF 수업 화면</h2>
-          <PdfViewerControls
-            documentState={documentState}
-            onFileSelected={onFileSelected}
-            onPageChange={onPageChange}
-            onPreviousPage={onPreviousPage}
-            onNextPage={onNextPage}
-            onZoomOut={onZoomOut}
-            onZoomIn={onZoomIn}
-            onPageFit={onPageFit}
-            onWidthFit={onWidthFit}
-          />
-
           {error && (
             <div className="viewer-alert" role="alert">
               <span>{error}</span>
@@ -197,9 +170,9 @@ export function LessonWorkspace({
                 <>
                   <span className="workspace-symbol" aria-hidden="true"><span /><span /><span /></span>
                   <p className="eyebrow">수업 화면</p>
-                  <h2 id="workspace-title">{error ? 'PDF를 열 수 없습니다.' : '수업 자료를 불러오면 이곳에 표시됩니다.'}</h2>
-                  <p>{error ?? '교과서 PDF는 외부로 전송되지 않고 브라우저 안에서만 열립니다.'}</p>
-                  <PdfFileButton label={error ? '다른 PDF 선택' : 'PDF 불러오기'} onFileSelected={onFileSelected} variant="primary" />
+                  <h2 id="workspace-title">{error ? 'PDF를 열 수 없습니다.' : 'PDF를 여기에 끌어다 놓으세요'}</h2>
+                  <p>{error ?? '또는 아래 버튼으로 PDF 파일을 선택하세요. 파일은 브라우저 안에서만 열립니다.'}</p>
+                  <PdfFileButton label={error ? '다른 PDF 선택' : 'PDF 파일 선택'} onFileSelected={onFileSelected} variant="primary" />
                 </>
               )}
             </div>

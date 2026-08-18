@@ -7,13 +7,38 @@ interface ProblemCropCanvasProps {
   pageNumber: number
   region: SourceRegion
   availableWidth: number
+  availableHeight?: number
   title: string
+  fitMode?: 'width' | 'adaptive'
 }
 
 const MAX_RENDER_SCALE = 4
 const MAX_OUTPUT_SCALE = 2
+const MAX_ADAPTIVE_SCALE = 1.45
+const MAX_TALL_PROBLEM_SCALE = 1.25
+const MIN_READABLE_SCALE = 0.85
 
-export function ProblemCropCanvas({ document, pageNumber, region, availableWidth, title }: ProblemCropCanvasProps) {
+function getAdaptiveScale(sourceWidth: number, sourceHeight: number, availableWidth: number, availableHeight: number) {
+  const widthFitScale = availableWidth / Math.max(1, sourceWidth)
+  const heightFitScale = availableHeight / Math.max(1, sourceHeight)
+  const containedScale = Math.min(widthFitScale, heightFitScale)
+
+  if (containedScale >= 1) {
+    return Math.min(MAX_ADAPTIVE_SCALE, containedScale)
+  }
+
+  return Math.min(MAX_TALL_PROBLEM_SCALE, Math.max(MIN_READABLE_SCALE, widthFitScale))
+}
+
+export function ProblemCropCanvas({
+  document,
+  pageNumber,
+  region,
+  availableWidth,
+  availableHeight = Number.POSITIVE_INFINITY,
+  title,
+  fitMode = 'width',
+}: ProblemCropCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const renderTaskRef = useRef<RenderTask | null>(null)
 
@@ -29,7 +54,10 @@ export function ProblemCropCanvas({ document, pageNumber, region, availableWidth
 
         const baseViewport = page.getViewport({ scale: 1 })
         const sourceWidth = baseViewport.width * region.width
-        const requestedScale = availableWidth / Math.max(1, sourceWidth)
+        const sourceHeight = baseViewport.height * region.height
+        const requestedScale = fitMode === 'adaptive'
+          ? getAdaptiveScale(sourceWidth, sourceHeight, availableWidth, availableHeight)
+          : availableWidth / Math.max(1, sourceWidth)
         const scale = Math.min(MAX_RENDER_SCALE, Math.max(0.5, requestedScale))
         const viewport = page.getViewport({ scale })
         const cropX = viewport.width * region.x
@@ -46,6 +74,7 @@ export function ProblemCropCanvas({ document, pageNumber, region, availableWidth
         canvas.height = Math.max(1, Math.ceil(cropHeight * outputScale))
         canvas.style.width = `${cropWidth}px`
         canvas.style.height = `${cropHeight}px`
+        canvas.dataset.renderScale = scale.toFixed(3)
 
         const renderTask = page.render({
           canvas,
@@ -69,12 +98,12 @@ export function ProblemCropCanvas({ document, pageNumber, region, availableWidth
       renderTaskRef.current?.cancel()
       renderTaskRef.current = null
     }
-  }, [availableWidth, document, pageNumber, region])
+  }, [availableHeight, availableWidth, document, fitMode, pageNumber, region])
 
   return (
     <canvas
       ref={canvasRef}
-      className="problem-crop-canvas"
+      className={`problem-crop-canvas${fitMode === 'adaptive' ? ' problem-crop-canvas--adaptive' : ''}`}
       aria-label={`${title} 원본 문제`}
       data-source-page={pageNumber}
       data-region={`${region.x},${region.y},${region.width},${region.height}`}

@@ -13,6 +13,8 @@ interface ProblemExpandedViewProps {
 export function ProblemExpandedView({ loadedPdf, problem, onClose }: ProblemExpandedViewProps) {
   const [contentElement, setContentElement] = useState<HTMLDivElement | null>(null)
   const contentSize = useElementSize(contentElement)
+  const availableWidth = Math.max(1, contentSize.width - 36)
+  const availableHeight = Math.max(1, contentSize.height - 36)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -37,8 +39,10 @@ export function ProblemExpandedView({ loadedPdf, problem, onClose }: ProblemExpa
             document={loadedPdf.document}
             pageNumber={problem.sourcePage}
             region={problem.sourceRegion}
-            availableWidth={Math.max(1, contentSize.width)}
+            availableWidth={availableWidth}
+            availableHeight={availableHeight}
             title={`${problem.title} 전체 보기`}
+            fitMode="adaptive"
           />
         </div>
       </div>

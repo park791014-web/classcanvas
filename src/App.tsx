@@ -4,6 +4,7 @@ import { LessonWorkspace } from './components/layout/LessonWorkspace'
 import { ToolBar } from './components/layout/ToolBar'
 import { TopBar } from './components/layout/TopBar'
 import { ProblemFocusView } from './components/content/ProblemFocusView'
+import { PdfDropZone } from './components/pdf/PdfDropZone'
 import { useAnnotations } from './hooks/useAnnotations'
 import { useContentBlocks } from './hooks/useContentBlocks'
 import { usePdfDocument, validatePdfFile } from './hooks/usePdfDocument'
@@ -166,8 +167,15 @@ function App() {
 
   return (
     <div className="app-shell">
-      <TopBar documentState={activeState} status={status} />
-      <main className="lesson-layout" aria-label="수업 작업 영역">
+      <TopBar
+        documentState={activeState}
+        status={status}
+        onZoomOut={() => activeState && changeScale(activeState.scale - SCALE_STEP)}
+        onZoomIn={() => activeState && changeScale(activeState.scale + SCALE_STEP)}
+        onPageFit={() => activeState && changeScale(activeState.scale, 'page-fit')}
+        onWidthFit={() => activeState && changeScale(activeState.scale, 'width-fit')}
+      />
+      <PdfDropZone hasDocument={Boolean(activeState)} onFileSelected={handleFileSelected}>
         <LessonNavigator
           documentState={activeState}
           status={status}
@@ -206,13 +214,6 @@ function App() {
           error={visibleError}
           onDismissError={() => setSelectionError(null)}
           onFileSelected={handleFileSelected}
-          onPageChange={changePage}
-          onPreviousPage={() => movePage(-1)}
-          onNextPage={() => movePage(1)}
-          onZoomOut={() => activeState && changeScale(activeState.scale - SCALE_STEP)}
-          onZoomIn={() => activeState && changeScale(activeState.scale + SCALE_STEP)}
-          onPageFit={() => activeState && changeScale(activeState.scale, 'page-fit')}
-          onWidthFit={() => activeState && changeScale(activeState.scale, 'width-fit')}
           onScaleChange={changeScale}
           annotationStrokes={pageAnnotations.strokes}
           annotationTool={pageAnnotations.activeTool}
@@ -225,7 +226,7 @@ function App() {
           onSaveProblem={handleSaveProblem}
           />
         )}
-      </main>
+      </PdfDropZone>
       <ToolBar
         hasDocument={Boolean(activeState)}
         activeTool={activeAnnotations.activeTool}
