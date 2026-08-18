@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { PdfFileButton } from '../pdf/PdfFileButton'
 import { PdfPageCanvas } from '../pdf/PdfPageCanvas'
 import { PdfViewerControls } from '../pdf/PdfViewerControls'
+import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
 import { useElementSize } from '../../hooks/useElementSize'
+import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
 import type { DocumentState, LoadedPdfDocument, PdfLoadStatus, PdfViewportMetrics, ZoomMode } from '../../types/pdf'
 
 interface LessonWorkspaceProps {
@@ -20,6 +22,12 @@ interface LessonWorkspaceProps {
   onPageFit: () => void
   onWidthFit: () => void
   onScaleChange: (scale: number, zoomMode?: ZoomMode) => void
+  annotationStrokes: AnnotationStroke[]
+  annotationTool: AnnotationTool
+  annotationSettings: AnnotationSettings
+  annotationsVisible: boolean
+  onAddStroke: (stroke: AnnotationStroke) => void
+  onEraseStrokes: (strokeIds: string[]) => void
 }
 
 const FIT_EDGE_GAP = 2
@@ -39,6 +47,12 @@ export function LessonWorkspace({
   onPageFit,
   onWidthFit,
   onScaleChange,
+  annotationStrokes,
+  annotationTool,
+  annotationSettings,
+  annotationsVisible,
+  onAddStroke,
+  onEraseStrokes,
 }: LessonWorkspaceProps) {
   const [viewportElement, setViewportElement] = useState<HTMLDivElement | null>(null)
   const viewportSize = useElementSize(viewportElement)
@@ -81,6 +95,11 @@ export function LessonWorkspace({
   }, [documentState, onScaleChange, pageMetrics, viewportElement, viewportSize])
 
   const hasDocument = Boolean(loadedPdf && documentState)
+  const annotationMetrics = documentState && pageMetrics
+    && pageMetrics.pageNumber === documentState.currentPage
+    && Math.abs(pageMetrics.scale - documentState.scale) < 0.005
+    ? pageMetrics
+    : null
 
   return (
     <section className="lesson-workspace" aria-labelledby="workspace-title">
@@ -122,12 +141,19 @@ export function LessonWorkspace({
                   onRenderStateChange={handleRenderStateChange}
                 />
               </div>
-              <div
-                className="workspace-annotation-layer"
-                aria-hidden="true"
-                data-coordinate-width={pageMetrics?.width}
-                data-coordinate-height={pageMetrics?.height}
-              />
+              <div className="workspace-annotation-layer">
+                {annotationMetrics && (
+                  <AnnotationCanvas
+                    metrics={annotationMetrics}
+                    strokes={annotationStrokes}
+                    activeTool={annotationTool}
+                    settings={annotationSettings}
+                    isVisible={annotationsVisible}
+                    onAddStroke={onAddStroke}
+                    onEraseStrokes={onEraseStrokes}
+                  />
+                )}
+              </div>
               <div className="workspace-ui-layer workspace-ui-layer--overlay" aria-live="polite">
                 {isRendering && <div className="page-loading"><span className="loading-spinner" aria-hidden="true" />페이지를 표시하는 중입니다.</div>}
                 {renderError && <div className="page-render-error" role="alert">{renderError}</div>}

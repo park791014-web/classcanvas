@@ -62,7 +62,11 @@ export function usePdfDocument() {
         return
       }
 
-      setLoadedPdf({ fileName: file.name, document })
+      setLoadedPdf({
+        documentId: `${file.name}:${file.size}:${file.lastModified}`,
+        fileName: file.name,
+        document,
+      })
       setStatus('ready')
     } catch (loadError) {
       if (requestId !== requestIdRef.current) {

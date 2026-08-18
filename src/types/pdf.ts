@@ -13,6 +13,7 @@ export interface DocumentState {
 }
 
 export interface LoadedPdfDocument {
+  documentId: string
   fileName: string
   document: PDFDocumentProxy
 }

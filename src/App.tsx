@@ -3,6 +3,7 @@ import { LessonNavigator } from './components/layout/LessonNavigator'
 import { LessonWorkspace } from './components/layout/LessonWorkspace'
 import { ToolBar } from './components/layout/ToolBar'
 import { TopBar } from './components/layout/TopBar'
+import { useAnnotations } from './hooks/useAnnotations'
 import { usePdfDocument, validatePdfFile } from './hooks/usePdfDocument'
 import type { DocumentState, ZoomMode } from './types/pdf'
 
@@ -14,6 +15,7 @@ function App() {
   const { loadedPdf, status, error, openPdf } = usePdfDocument()
   const [documentState, setDocumentState] = useState<DocumentState | null>(null)
   const [selectionError, setSelectionError] = useState<string | null>(null)
+  const annotations = useAnnotations(loadedPdf?.documentId ?? null, documentState?.currentPage ?? 1)
 
   useEffect(() => {
     if (status === 'loading' || status === 'error') {
@@ -84,6 +86,19 @@ function App() {
         return
       }
 
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) annotations.redo()
+        else annotations.undo()
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
+        event.preventDefault()
+        annotations.redo()
+        return
+      }
+
       if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
         event.preventDefault()
         movePage(-1)
@@ -97,7 +112,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [movePage])
+  }, [annotations, movePage])
 
   const activeState = loadedPdf ? documentState : null
   const visibleError = selectionError ?? error
@@ -129,9 +144,27 @@ function App() {
           onPageFit={() => activeState && changeScale(activeState.scale, 'page-fit')}
           onWidthFit={() => activeState && changeScale(activeState.scale, 'width-fit')}
           onScaleChange={changeScale}
+          annotationStrokes={annotations.strokes}
+          annotationTool={annotations.activeTool}
+          annotationSettings={annotations.settings}
+          annotationsVisible={annotations.isVisible}
+          onAddStroke={annotations.addStroke}
+          onEraseStrokes={annotations.eraseStrokes}
         />
       </main>
-      <ToolBar />
+      <ToolBar
+        hasDocument={Boolean(activeState)}
+        activeTool={annotations.activeTool}
+        settings={annotations.settings}
+        isVisible={annotations.isVisible}
+        canUndo={annotations.canUndo}
+        canRedo={annotations.canRedo}
+        onToolChange={annotations.setActiveTool}
+        onStyleChange={annotations.updateDrawingStyle}
+        onUndo={annotations.undo}
+        onRedo={annotations.redo}
+        onToggleVisibility={annotations.toggleVisibility}
+      />
     </div>
   )
 }

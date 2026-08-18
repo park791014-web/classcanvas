@@ -21,7 +21,7 @@ button, input, textarea, select { font: inherit; }
 
 .app-shell {
   display: grid;
-  grid-template-rows: 72px minmax(0, 1fr) 80px;
+  grid-template-rows: 72px minmax(0, 1fr) 88px;
   width: 100%;
   height: 100dvh;
   background: #eef2f6;
@@ -190,23 +190,72 @@ button, input, textarea, select { font: inherit; }
 .toolbar-label strong { flex: none; font-size: 16px; }
 .toolbar-label span:last-child { overflow: hidden; color: #6d788b; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .toolbar-grip { width: 4px; height: 32px; background: #2563eb; }
-.toolbar-placeholder { display: flex; flex: none; align-items: center; gap: 8px; }
-.toolbar-placeholder span {
-  padding: 8px 11px;
-  color: #7b8799;
-  font-size: 13px;
-  font-weight: 650;
-  background: #f4f6f8;
-  border: 1px solid #e0e5eb;
-  border-radius: 5px;
+.annotation-toolbar-controls,
+.tool-button-group,
+.drawing-style-controls,
+.color-controls,
+.width-controls,
+.history-controls { display: flex; align-items: center; }
+
+.annotation-toolbar-controls { min-width: 0; gap: 12px; }
+.tool-button-group, .width-controls, .history-controls { gap: 6px; }
+.drawing-style-controls {
+  min-width: 250px;
+  min-height: 42px;
+  padding: 0 12px;
+  gap: 10px;
+  border-right: 1px solid #dde3eb;
+  border-left: 1px solid #dde3eb;
 }
 
+.tool-button-group button, .width-controls button, .history-controls button {
+  min-height: 40px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.tool-button-group button.is-active,
+.width-controls button.is-active,
+.history-controls button.is-active {
+  color: #1d4ed8;
+  background: #eef4ff;
+  border-color: #7aa2f7;
+}
+
+.color-controls { gap: 5px; }
+.color-button {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.color-button::after {
+  position: absolute;
+  inset: 6px;
+  content: "";
+  background: var(--swatch-color);
+  border: 1px solid rgb(21 35 59 / 22%);
+  border-radius: 50%;
+}
+
+.color-button.is-active { border: 3px solid #2563eb; }
+.color-button.is-active::after { inset: 4px; }
+.drawing-style-hint { color: #778397; font-size: 12px; white-space: nowrap; }
+
 @media (max-width: 1500px) {
-  .app-shell { grid-template-rows: 66px minmax(0, 1fr) 72px; }
+  .app-shell { grid-template-rows: 66px minmax(0, 1fr) 80px; }
   .lesson-layout { grid-template-columns: 250px minmax(0, 1fr); padding: 12px; gap: 12px; }
   .panel-heading { padding: 20px; }
   .future-groups { padding: 14px 16px; }
   .workspace-ui-layer { padding: 32px; }
+  .tool-bar { padding-inline: 16px; gap: 12px; }
+  .toolbar-label > div > span { display: none; }
+  .drawing-style-controls { min-width: 220px; padding-inline: 8px; gap: 7px; }
+  .tool-button-group button, .width-controls button, .history-controls button { padding-inline: 8px; }
 }
 
 @media (max-height: 820px) {
@@ -392,6 +441,18 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 
 .pdf-page-canvas { display: block; width: 100%; height: 100%; background: #fff; }
 .pdf-coordinate-space > .workspace-annotation-layer { z-index: 2; pointer-events: none; }
+.annotation-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.annotation-canvas--interactive {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: crosshair;
+}
 .workspace-ui-layer--overlay { z-index: 3; padding: 0; pointer-events: none; }
 .page-loading, .page-render-error {
   display: flex;
