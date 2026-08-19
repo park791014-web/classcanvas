@@ -30,10 +30,13 @@ export function useProblemWorkspaces(workspaceId: string | null) {
     })
   }, [])
 
+  const hasWorkspaceState = useCallback((targetWorkspaceId: string) => targetWorkspaceId in heights, [heights])
+
   return {
     workspaceHeight,
     canExpand: workspaceHeight < MAX_PROBLEM_WORKSPACE_HEIGHT,
     expandWorkspace,
     removeWorkspace,
+    hasWorkspaceState,
   }
 }

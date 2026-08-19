@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import type { ProblemContentBlock, SourceRegion } from '../../types/content'
+import { CONTENT_TYPE_LABELS } from '../../types/content'
+import type { ContentBlock, ContentType, SourceRegion } from '../../types/content'
+import { ContentBlockEditor } from './ContentBlockEditor'
 
 interface RegionSelectorProps {
   active: boolean
-  defaultTitle: string
-  savedProblems: ProblemContentBlock[]
-  onSave: (region: SourceRegion, title: string) => void
+  defaultTitles: Record<ContentType, string>
+  savedBlocks: ContentBlock[]
+  activeBlockId: string | null
+  onSave: (region: SourceRegion, type: ContentType, title: string) => void
 }
 
 interface NormalizedPosition {
@@ -37,17 +40,18 @@ function regionStyle(region: SourceRegion) {
   }
 }
 
-export function RegionSelector({ active, defaultTitle, savedProblems, onSave }: RegionSelectorProps) {
+export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlockId, onSave }: RegionSelectorProps) {
   const surfaceRef = useRef<HTMLDivElement>(null)
   const pointerIdRef = useRef<number | null>(null)
   const startRef = useRef<NormalizedPosition | null>(null)
   const [draftRegion, setDraftRegion] = useState<SourceRegion | null>(null)
-  const [draftTitle, setDraftTitle] = useState(defaultTitle)
+  const [draftType, setDraftType] = useState<ContentType>('problem')
+  const [draftTitle, setDraftTitle] = useState(defaultTitles.problem)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    setDraftTitle(defaultTitle)
-  }, [defaultTitle])
+    if (!draftRegion) setDraftTitle(defaultTitles[draftType])
+  }, [defaultTitles, draftRegion, draftType])
 
   useEffect(() => {
     if (active) return
@@ -106,31 +110,39 @@ export function RegionSelector({ active, defaultTitle, savedProblems, onSave }: 
     }
 
     setDraftRegion(finalRegion)
-    setDraftTitle(defaultTitle)
+    setDraftType('problem')
+    setDraftTitle(defaultTitles.problem)
   }
 
   const cancelDraft = () => {
     setDraftRegion(null)
-    setDraftTitle(defaultTitle)
+    setDraftType('problem')
+    setDraftTitle(defaultTitles.problem)
     setMessage(null)
   }
 
   const saveDraft = () => {
     if (!draftRegion) return
-    onSave(draftRegion, draftTitle)
+    onSave(draftRegion, draftType, draftTitle)
     cancelDraft()
+  }
+
+  const changeDraftType = (nextType: ContentType) => {
+    const previousDefault = defaultTitles[draftType]
+    setDraftType(nextType)
+    if (!draftTitle.trim() || draftTitle === previousDefault) setDraftTitle(defaultTitles[nextType])
   }
 
   return (
     <div className="region-selector-layer" data-selection-active={active}>
-      {savedProblems.map((problem) => (
+      {savedBlocks.map((block) => (
         <div
-          key={problem.id}
-          className="saved-region-outline"
-          style={regionStyle(problem.sourceRegion)}
+          key={block.id}
+          className={`saved-region-outline${activeBlockId === block.id ? ' is-active' : ''}`}
+          style={regionStyle(block.sourceRegion)}
           aria-hidden="true"
         >
-          <span>{problem.title}</span>
+          <span>{CONTENT_TYPE_LABELS[block.type]} · {block.title}</span>
         </div>
       ))}
 
@@ -138,7 +150,7 @@ export function RegionSelector({ active, defaultTitle, savedProblems, onSave }: 
         <div
           ref={surfaceRef}
           className="region-selection-surface"
-          aria-label="문제 영역 선택"
+          aria-label="콘텐츠 영역 선택"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={(event) => finishSelection(event, false)}
@@ -151,23 +163,21 @@ export function RegionSelector({ active, defaultTitle, savedProblems, onSave }: 
       {active && draftRegion && draftRegion.width > 0 && draftRegion.height > 0 && pointerIdRef.current === null && (
         <form className="region-save-panel" onSubmit={(event) => { event.preventDefault(); saveDraft() }}>
           <strong>선택 영역 저장</strong>
-          <label htmlFor="problem-title-input">문제 이름</label>
-          <input
-            id="problem-title-input"
-            value={draftTitle}
-            maxLength={40}
-            autoFocus
-            onChange={(event) => setDraftTitle(event.target.value)}
+          <ContentBlockEditor
+            type={draftType}
+            title={draftTitle}
+            onTypeChange={changeDraftType}
+            onTitleChange={setDraftTitle}
           />
           <div>
             <button type="button" onClick={cancelDraft}>취소</button>
-            <button type="submit" className="primary-action" disabled={!draftTitle.trim()}>저장</button>
+            <button type="submit" className="primary-action">저장</button>
           </div>
         </form>
       )}
 
       {active && message && <div className="region-selection-message" role="status">{message}</div>}
-      {active && !draftRegion && !message && <div className="region-selection-guide">문제 전체를 드래그해 선택하세요.</div>}
+      {active && !draftRegion && !message && <div className="region-selection-guide">저장할 콘텐츠 영역을 드래그해 선택하세요.</div>}
     </div>
   )
 }

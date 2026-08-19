@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { ContentBlockEditor } from '../content/ContentBlockEditor'
 import { PageNumberInput } from '../pdf/PageNumberInput'
 import { PdfFileButton } from '../pdf/PdfFileButton'
-import type { ProblemContentBlock } from '../../types/content'
+import { CONTENT_TYPE_LABELS } from '../../types/content'
+import type { ContentBlock, ContentType } from '../../types/content'
+import type { UpdateContentBlockInput } from '../../hooks/useContentBlocks'
 import type { DocumentState, PdfLoadStatus } from '../../types/pdf'
+import type { AnalysisProgress, AnalysisScope } from '../../types/analysis'
 
 interface LessonNavigatorProps {
   documentState: DocumentState | null
@@ -11,11 +15,23 @@ interface LessonNavigatorProps {
   onPageChange: (pageNumber: number) => void
   onPreviousPage: () => void
   onNextPage: () => void
-  problems: ProblemContentBlock[]
-  focusedProblemId: string | null
-  onSelectProblem: (problem: ProblemContentBlock) => void
-  onRenameProblem: (problemId: string, title: string) => void
-  onDeleteProblem: (problem: ProblemContentBlock) => void
+  blocks: ContentBlock[]
+  selectedContentId: string | null
+  onSelectBlock: (block: ContentBlock) => void
+  onUpdateBlock: (block: ContentBlock, input: UpdateContentBlockInput) => string | null
+  onDeleteBlock: (block: ContentBlock) => void
+  analysisScope: AnalysisScope
+  analysisProgress: AnalysisProgress
+  analysisCandidateCount: number
+  analysisNotice: string | null
+  onAnalysisScopeChange: (scope: AnalysisScope) => void
+  onAnalyze: () => void
+  onCancelAnalysis: () => void
+  onOpenAnalysisReview: () => void
+}
+
+function sortByTextbookOrder(blocks: ContentBlock[]) {
+  return [...blocks].sort((a, b) => a.sourceRegion.y - b.sourceRegion.y || a.createdAt - b.createdAt)
 }
 
 export function LessonNavigator({
@@ -25,67 +41,97 @@ export function LessonNavigator({
   onPageChange,
   onPreviousPage,
   onNextPage,
-  problems,
-  focusedProblemId,
-  onSelectProblem,
-  onRenameProblem,
-  onDeleteProblem,
+  blocks,
+  selectedContentId,
+  onSelectBlock,
+  onUpdateBlock,
+  onDeleteBlock,
+  analysisScope,
+  analysisProgress,
+  analysisCandidateCount,
+  analysisNotice,
+  onAnalysisScopeChange,
+  onAnalyze,
+  onCancelAnalysis,
+  onOpenAnalysisReview,
 }: LessonNavigatorProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const [editingType, setEditingType] = useState<ContentType>('problem')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editMessage, setEditMessage] = useState<string | null>(null)
 
   useEffect(() => {
     setEditingId(null)
     setDeletingId(null)
+    setEditMessage(null)
   }, [documentState?.fileName])
 
-  const currentPageProblems = documentState
-    ? problems.filter((problem) => problem.sourcePage === documentState.currentPage)
-    : []
-  const otherPageProblems = documentState
-    ? problems.filter((problem) => problem.sourcePage !== documentState.currentPage)
-    : []
+  const currentPageBlocks = useMemo(() => documentState
+    ? sortByTextbookOrder(blocks.filter((block) => block.sourcePage === documentState.currentPage))
+    : [], [blocks, documentState])
+  const otherPageGroups = useMemo(() => {
+    if (!documentState) return []
+    const groups = new Map<number, ContentBlock[]>()
+    blocks.filter((block) => block.sourcePage !== documentState.currentPage).forEach((block) => {
+      groups.set(block.sourcePage, [...(groups.get(block.sourcePage) ?? []), block])
+    })
+    return [...groups.entries()]
+      .sort(([pageA], [pageB]) => pageA - pageB)
+      .map(([page, pageBlocks]) => ({ page, blocks: sortByTextbookOrder(pageBlocks) }))
+  }, [blocks, documentState])
 
-  const renderProblem = (problem: ProblemContentBlock) => (
-    <li key={problem.id} className={focusedProblemId === problem.id ? 'problem-nav-item is-active' : 'problem-nav-item'}>
-      {editingId === problem.id ? (
+  const startEditing = (block: ContentBlock) => {
+    setEditingId(block.id)
+    setEditingType(block.type)
+    setEditingTitle(block.title)
+    setEditMessage(null)
+  }
+
+  const renderBlock = (block: ContentBlock) => (
+    <li key={block.id} className={selectedContentId === block.id ? 'problem-nav-item is-active' : 'problem-nav-item'}>
+      {editingId === block.id ? (
         <form
-          className="problem-rename-form"
+          className="problem-rename-form content-edit-form"
           onSubmit={(event) => {
             event.preventDefault()
             if (!editingTitle.trim()) return
-            onRenameProblem(problem.id, editingTitle)
+            const warning = onUpdateBlock(block, { type: editingType, title: editingTitle })
+            if (warning) { setEditMessage(warning); return }
             setEditingId(null)
           }}
         >
-          <input
-            value={editingTitle}
-            maxLength={40}
-            autoFocus
-            aria-label="문제 이름"
-            onChange={(event) => setEditingTitle(event.target.value)}
+          <ContentBlockEditor
+            compact
+            type={editingType}
+            title={editingTitle}
+            onTypeChange={setEditingType}
+            onTitleChange={setEditingTitle}
           />
-          <button type="button" onClick={() => setEditingId(null)}>취소</button>
-          <button type="submit" disabled={!editingTitle.trim()}>저장</button>
+          {editMessage && <p className="content-edit-message" role="alert">{editMessage}</p>}
+          <div>
+            <button type="button" onClick={() => setEditingId(null)}>취소</button>
+            <button type="submit" disabled={!editingTitle.trim()}>저장</button>
+          </div>
         </form>
-      ) : deletingId === problem.id ? (
+      ) : deletingId === block.id ? (
         <div className="problem-delete-confirm" role="alert">
-          <span>문제와 풀이를 삭제할까요?</span>
+          <span>{block.type === 'problem' ? '문제와 풀이를 삭제할까요?' : '이 콘텐츠를 삭제할까요?'}</span>
           <div>
             <button type="button" onClick={() => setDeletingId(null)}>취소</button>
-            <button type="button" className="danger-action" onClick={() => { onDeleteProblem(problem); setDeletingId(null) }}>삭제</button>
+            <button type="button" className="danger-action" onClick={() => { onDeleteBlock(block); setDeletingId(null) }}>삭제</button>
           </div>
         </div>
       ) : (
         <>
-          <button type="button" className="problem-open-button" title={problem.title} onClick={() => onSelectProblem(problem)}>
-            <span>{problem.title}</span>
-            <small>p.{problem.sourcePage}</small>
+          <button type="button" className="problem-open-button content-open-button" title={block.title} onClick={() => onSelectBlock(block)}>
+            <span className={`content-type-badge content-type-badge--${block.type}`}>{CONTENT_TYPE_LABELS[block.type]}</span>
+            <span className="content-block-title">{block.title}</span>
+            <small>p.{block.sourcePage}</small>
           </button>
           <div className="problem-item-actions">
-            <button type="button" aria-label={`${problem.title} 이름 수정`} onClick={() => { setEditingId(problem.id); setEditingTitle(problem.title) }}>수정</button>
-            <button type="button" aria-label={`${problem.title} 삭제`} onClick={() => setDeletingId(problem.id)}>삭제</button>
+            <button type="button" aria-label={`${block.title} 수정`} onClick={() => startEditing(block)}>수정</button>
+            <button type="button" aria-label={`${block.title} 삭제`} onClick={() => setDeletingId(block.id)}>삭제</button>
           </div>
         </>
       )}
@@ -105,40 +151,59 @@ export function LessonNavigator({
             <strong title={documentState.fileName}>{documentState.fileName}</strong>
             <span>전체 {documentState.totalPages}페이지</span>
           </section>
-
           <section className="navigator-page-control" aria-labelledby="page-navigation-title">
             <p className="navigator-section-label" id="page-navigation-title">페이지 이동</p>
-            <PageNumberInput
-              compact
-              currentPage={documentState.currentPage}
-              totalPages={documentState.totalPages}
-              onPageChange={onPageChange}
-            />
+            <PageNumberInput compact currentPage={documentState.currentPage} totalPages={documentState.totalPages} onPageChange={onPageChange} />
             <div className="navigator-step-buttons">
               <button type="button" onClick={onPreviousPage} disabled={documentState.currentPage === 1}>‹ 이전</button>
               <button type="button" onClick={onNextPage} disabled={documentState.currentPage === documentState.totalPages}>다음 ›</button>
             </div>
           </section>
-
-          <section className="navigator-content-blocks" aria-labelledby="problem-list-title">
+          <section className="navigator-analysis-control" aria-labelledby="analysis-control-title">
             <div className="navigator-content-heading">
-              <p className="navigator-section-label" id="problem-list-title">현재 페이지 · p.{documentState.currentPage}</p>
-              <span>{currentPageProblems.length}개</span>
+              <p className="navigator-section-label" id="analysis-control-title">콘텐츠 자동 분석</p>
+              {analysisCandidateCount > 0 && <button type="button" onClick={onOpenAnalysisReview}>{analysisCandidateCount}개 검수</button>}
             </div>
-            {currentPageProblems.length > 0 ? (
-              <ul className="problem-list">{currentPageProblems.map(renderProblem)}</ul>
+            <select
+              aria-label="자동 분석 범위"
+              value={analysisScope}
+              disabled={analysisProgress.running}
+              onChange={(event) => onAnalysisScopeChange(event.target.value as AnalysisScope)}
+            >
+              <option value="page">현재 페이지</option>
+              <option value="document">전체 문서</option>
+            </select>
+            {analysisProgress.running ? (
+              <div className="analysis-progress" role="status">
+                <span>p.{analysisProgress.currentPage} 분석 중 · {analysisProgress.completedPages} / {analysisProgress.totalPages}</span>
+                <progress value={analysisProgress.completedPages} max={analysisProgress.totalPages} />
+                <button type="button" onClick={onCancelAnalysis}>분석 중지</button>
+              </div>
             ) : (
-              <p className="problem-list-empty">영역 선택 도구로 문제를 추가할 수 있습니다.</p>
+              <button type="button" className="analysis-start-button" onClick={onAnalyze}>자동 분석</button>
             )}
-
-            {otherPageProblems.length > 0 && (
-              <>
-                <p className="other-problems-label">다른 페이지 문제</p>
-                <ul className="problem-list problem-list--other">{otherPageProblems.map(renderProblem)}</ul>
-              </>
-            )}
+            {analysisNotice && <p className="analysis-notice" role="status">{analysisNotice}</p>}
+            <p className="analysis-local-note">PDF 텍스트를 브라우저 안에서만 분석합니다.</p>
           </section>
-
+          <section className="navigator-content-blocks" aria-labelledby="content-list-title">
+            <div className="navigator-content-tabs" role="tablist" aria-label="콘텐츠 범위">
+              <button type="button" role="tab" aria-selected="true">현재 페이지</button>
+              <button type="button" role="tab" aria-selected="false" disabled title="단원 정보 연동 후 사용할 수 있습니다.">현재 단원</button>
+            </div>
+            <div className="navigator-content-heading">
+              <p className="navigator-section-label" id="content-list-title">현재 페이지 · p.{documentState.currentPage}</p>
+              <span>{currentPageBlocks.length}개</span>
+            </div>
+            {currentPageBlocks.length > 0
+              ? <ul className="problem-list">{currentPageBlocks.map(renderBlock)}</ul>
+              : <p className="problem-list-empty">영역 선택 도구로 콘텐츠를 추가할 수 있습니다.</p>}
+            {otherPageGroups.map((group) => (
+              <div className="other-content-group" key={group.page}>
+                <p className="other-problems-label">p.{group.page} · {group.blocks.length}개</p>
+                <ul className="problem-list problem-list--other">{group.blocks.map(renderBlock)}</ul>
+              </div>
+            ))}
+          </section>
           <div className="navigator-file-action">
             <PdfFileButton label="다른 PDF 열기" onFileSelected={onFileSelected} />
             <p>선택한 파일은 브라우저 안에서만 처리됩니다.</p>

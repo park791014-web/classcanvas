@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import type { SourceRegion } from '../../types/content'
 
-interface ProblemCropCanvasProps {
+export interface ContentCropCanvasProps {
   document: PDFDocumentProxy
   pageNumber: number
   region: SourceRegion
@@ -30,7 +30,7 @@ function getAdaptiveScale(sourceWidth: number, sourceHeight: number, availableWi
   return Math.min(MAX_TALL_PROBLEM_SCALE, Math.max(MIN_READABLE_SCALE, widthFitScale))
 }
 
-export function ProblemCropCanvas({
+export function ContentCropCanvas({
   document,
   pageNumber,
   region,
@@ -38,7 +38,7 @@ export function ProblemCropCanvas({
   availableHeight = Number.POSITIVE_INFINITY,
   title,
   fitMode = 'width',
-}: ProblemCropCanvasProps) {
+}: ContentCropCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const renderTaskRef = useRef<RenderTask | null>(null)
 
@@ -87,7 +87,7 @@ export function ProblemCropCanvas({
         await renderTask.promise
       } catch (error) {
         if (!cancelled && (!(error instanceof Error) || error.name !== 'RenderingCancelledException')) {
-          console.error('문제 영역을 렌더링할 수 없습니다.', error)
+          console.error('콘텐츠 영역을 렌더링할 수 없습니다.', error)
         }
       }
     }
@@ -104,9 +104,11 @@ export function ProblemCropCanvas({
     <canvas
       ref={canvasRef}
       className={`problem-crop-canvas${fitMode === 'adaptive' ? ' problem-crop-canvas--adaptive' : ''}`}
-      aria-label={`${title} 원본 문제`}
+      aria-label={`${title} 원본 콘텐츠`}
       data-source-page={pageNumber}
       data-region={`${region.x},${region.y},${region.width},${region.height}`}
     />
   )
 }
+
+export const ProblemCropCanvas = ContentCropCanvas

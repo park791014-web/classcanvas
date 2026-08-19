@@ -1,19 +1,28 @@
-import { useCallback, useState } from 'react'
-import type { ProblemContentBlock, SourceRegion } from '../types/content'
+import { useCallback, useMemo, useState } from 'react'
+import { CONTENT_TYPE_LABELS, CONTENT_TYPE_OPTIONS } from '../types/content'
+import type { ContentBlock, ContentType, SourceRegion } from '../types/content'
 
 interface DocumentContentState {
-  blocks: ProblemContentBlock[]
-  nextProblemNumber: number
+  blocks: ContentBlock[]
+  nextNumbers?: Partial<Record<ContentType, number>>
+  nextProblemNumber?: number
 }
 
-interface AddProblemInput {
+export interface AddContentBlockInput {
+  type: ContentType
   sourceFileName: string
   sourcePage: number
   sourceRegion: SourceRegion
   title?: string
+  relatedContentId?: string
 }
 
-const EMPTY_BLOCKS: ProblemContentBlock[] = []
+export interface UpdateContentBlockInput {
+  type: ContentType
+  title: string
+}
+
+const EMPTY_BLOCKS: ContentBlock[] = []
 
 function createBlockId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
@@ -22,32 +31,43 @@ function createBlockId() {
 export function useContentBlocks(documentId: string | null) {
   const [store, setStore] = useState<Record<string, DocumentContentState>>({})
   const currentState = documentId ? store[documentId] : undefined
-  const problems = currentState?.blocks ?? EMPTY_BLOCKS
-  const nextProblemTitle = `문제 ${currentState?.nextProblemNumber ?? 1}`
+  const blocks = currentState?.blocks ?? EMPTY_BLOCKS
+  const nextTitles = useMemo(() => Object.fromEntries(CONTENT_TYPE_OPTIONS.map(({ value }) => [
+    value,
+    `${CONTENT_TYPE_LABELS[value]} ${currentState?.nextNumbers?.[value] ?? (value === 'problem' ? currentState?.nextProblemNumber : undefined) ?? 1}`,
+  ])) as Record<ContentType, string>, [currentState])
 
-  const addProblem = useCallback((input: AddProblemInput) => {
+  const addBlock = useCallback((input: AddContentBlockInput) => {
     if (!documentId) return null
     const id = createBlockId()
 
     setStore((currentStore) => {
-      const documentState = currentStore[documentId] ?? { blocks: [], nextProblemNumber: 1 }
-      const title = input.title?.trim() || `문제 ${documentState.nextProblemNumber}`
-      const block: ProblemContentBlock = {
+      const documentState = currentStore[documentId] ?? { blocks: [], nextNumbers: {} }
+      const nextNumber = documentState.nextNumbers?.[input.type]
+        ?? (input.type === 'problem' ? documentState.nextProblemNumber : undefined)
+        ?? 1
+      const title = input.title?.trim() || `${CONTENT_TYPE_LABELS[input.type]} ${nextNumber}`
+      const block: ContentBlock = {
         id,
-        type: 'problem',
+        type: input.type,
         title,
         sourceDocumentId: documentId,
         sourceFileName: input.sourceFileName,
         sourcePage: input.sourcePage,
         sourceRegion: input.sourceRegion,
         createdAt: Date.now(),
+        relatedContentId: input.relatedContentId,
       }
 
       return {
         ...currentStore,
         [documentId]: {
           blocks: [...documentState.blocks, block],
-          nextProblemNumber: documentState.nextProblemNumber + 1,
+          nextNumbers: {
+            ...documentState.nextNumbers,
+            [input.type]: nextNumber + 1,
+          },
+          nextProblemNumber: input.type === 'problem' ? nextNumber + 1 : documentState.nextProblemNumber,
         },
       }
     })
@@ -55,8 +75,8 @@ export function useContentBlocks(documentId: string | null) {
     return id
   }, [documentId])
 
-  const renameProblem = useCallback((problemId: string, title: string) => {
-    if (!documentId || !title.trim()) return
+  const updateBlock = useCallback((blockId: string, input: UpdateContentBlockInput) => {
+    if (!documentId || !input.title.trim()) return
     setStore((currentStore) => {
       const documentState = currentStore[documentId]
       if (!documentState) return currentStore
@@ -64,15 +84,15 @@ export function useContentBlocks(documentId: string | null) {
         ...currentStore,
         [documentId]: {
           ...documentState,
-          blocks: documentState.blocks.map((block) => block.id === problemId
-            ? { ...block, title: title.trim() }
+          blocks: documentState.blocks.map((block) => block.id === blockId
+            ? { ...block, type: input.type, title: input.title.trim() }
             : block),
         },
       }
     })
   }, [documentId])
 
-  const removeProblem = useCallback((problemId: string) => {
+  const removeBlock = useCallback((blockId: string) => {
     if (!documentId) return
     setStore((currentStore) => {
       const documentState = currentStore[documentId]
@@ -81,17 +101,17 @@ export function useContentBlocks(documentId: string | null) {
         ...currentStore,
         [documentId]: {
           ...documentState,
-          blocks: documentState.blocks.filter((block) => block.id !== problemId),
+          blocks: documentState.blocks.filter((block) => block.id !== blockId),
         },
       }
     })
   }, [documentId])
 
   return {
-    problems,
-    nextProblemTitle,
-    addProblem,
-    renameProblem,
-    removeProblem,
+    blocks,
+    nextTitles,
+    addBlock,
+    updateBlock,
+    removeBlock,
   }
 }

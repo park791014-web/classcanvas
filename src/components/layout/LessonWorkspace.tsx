@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { PdfFileButton } from '../pdf/PdfFileButton'
 import { PdfPageCanvas } from '../pdf/PdfPageCanvas'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
 import { RegionSelector } from '../content/RegionSelector'
+import { CandidateOverlay } from '../analysis/CandidateOverlay'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
-import type { ProblemContentBlock, SourceRegion } from '../../types/content'
+import type { ContentBlock, ContentType, SourceRegion } from '../../types/content'
+import type { AnalysisCandidate } from '../../types/analysis'
 import type { DocumentState, LoadedPdfDocument, PdfLoadStatus, PdfViewportMetrics, ZoomMode } from '../../types/pdf'
 
 interface LessonWorkspaceProps {
@@ -22,9 +24,16 @@ interface LessonWorkspaceProps {
   annotationsVisible: boolean
   onAddStroke: (stroke: AnnotationStroke) => void
   onEraseStrokes: (strokeIds: string[]) => void
-  problems: ProblemContentBlock[]
-  nextProblemTitle: string
-  onSaveProblem: (region: SourceRegion, title: string) => void
+  blocks: ContentBlock[]
+  nextTitles: Record<ContentType, string>
+  activeContentBlock: ContentBlock | null
+  onSaveBlock: (region: SourceRegion, type: ContentType, title: string) => void
+  analysisCandidates: AnalysisCandidate[]
+  activeAnalysisCandidate: AnalysisCandidate | null
+  editingCandidateRegionId: string | null
+  onCandidateRegionChange: (candidateId: string, region: SourceRegion) => void
+  onCancelCandidateRegionEdit: () => void
+  reviewPanel?: ReactNode
 }
 
 const FIT_EDGE_GAP = 2
@@ -43,13 +52,21 @@ export function LessonWorkspace({
   annotationsVisible,
   onAddStroke,
   onEraseStrokes,
-  problems,
-  nextProblemTitle,
-  onSaveProblem,
+  blocks,
+  nextTitles,
+  activeContentBlock,
+  onSaveBlock,
+  analysisCandidates,
+  activeAnalysisCandidate,
+  editingCandidateRegionId,
+  onCandidateRegionChange,
+  onCancelCandidateRegionEdit,
+  reviewPanel,
 }: LessonWorkspaceProps) {
   const [viewportElement, setViewportElement] = useState<HTMLDivElement | null>(null)
   const viewportSize = useElementSize(viewportElement)
   const [pageMetrics, setPageMetrics] = useState<PdfViewportMetrics | null>(null)
+  const [coordinateSpace, setCoordinateSpace] = useState<HTMLDivElement | null>(null)
   const [isRendering, setIsRendering] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
 
@@ -87,14 +104,29 @@ export function LessonWorkspace({
     }
   }, [documentState, onScaleChange, pageMetrics, viewportElement, viewportSize])
 
+  useEffect(() => {
+    const activeTarget = activeAnalysisCandidate ?? activeContentBlock
+    if (!activeTarget || !documentState || !pageMetrics || !viewportElement || !coordinateSpace) return
+    if (activeTarget.sourcePage !== documentState.currentPage || pageMetrics.pageNumber !== documentState.currentPage) return
+    const region = activeTarget.sourceRegion
+    viewportElement.scrollTo({
+      left: Math.max(0, coordinateSpace.offsetLeft + pageMetrics.width * (region.x + region.width / 2) - viewportElement.clientWidth / 2),
+      top: Math.max(0, coordinateSpace.offsetTop + pageMetrics.height * (region.y + region.height / 2) - viewportElement.clientHeight / 2),
+      behavior: 'smooth',
+    })
+  }, [activeAnalysisCandidate, activeContentBlock, coordinateSpace, documentState, pageMetrics, viewportElement])
+
   const hasDocument = Boolean(loadedPdf && documentState)
   const annotationMetrics = documentState && pageMetrics
     && pageMetrics.pageNumber === documentState.currentPage
     && Math.abs(pageMetrics.scale - documentState.scale) < 0.005
     ? pageMetrics
     : null
-  const currentPageProblems = documentState
-    ? problems.filter((problem) => problem.sourcePage === documentState.currentPage)
+  const currentPageBlocks = documentState
+    ? blocks.filter((block) => block.sourcePage === documentState.currentPage)
+    : []
+  const currentPageCandidates = documentState
+    ? analysisCandidates.filter((candidate) => candidate.sourcePage === documentState.currentPage)
     : []
 
   return (
@@ -112,6 +144,7 @@ export function LessonWorkspace({
           <div className="pdf-scroll-viewport" ref={setViewportElement} aria-busy={isRendering}>
             <div
               className="pdf-coordinate-space"
+              ref={setCoordinateSpace}
               style={pageMetrics ? { width: pageMetrics.width, height: pageMetrics.height } : undefined}
               data-page-number={documentState.currentPage}
               data-pdf-scale={documentState.scale}
@@ -137,14 +170,24 @@ export function LessonWorkspace({
                     onEraseStrokes={onEraseStrokes}
                   />
                 )}
+                {annotationMetrics && (
+                  <CandidateOverlay
+                    candidates={currentPageCandidates}
+                    activeCandidateId={activeAnalysisCandidate?.id ?? null}
+                    editingCandidateId={editingCandidateRegionId}
+                    onRegionChange={onCandidateRegionChange}
+                    onCancelRegionEdit={onCancelCandidateRegionEdit}
+                  />
+                )}
               </div>
               <div className="workspace-ui-layer workspace-ui-layer--overlay" aria-live="polite">
                 {annotationMetrics && (
                   <RegionSelector
                     active={annotationTool === 'region-select'}
-                    defaultTitle={nextProblemTitle}
-                    savedProblems={currentPageProblems}
-                    onSave={onSaveProblem}
+                    defaultTitles={nextTitles}
+                    savedBlocks={currentPageBlocks}
+                    activeBlockId={activeContentBlock?.id ?? null}
+                    onSave={onSaveBlock}
                   />
                 )}
                 {isRendering && <div className="page-loading"><span className="loading-spinner" aria-hidden="true" />페이지를 표시하는 중입니다.</div>}
@@ -152,6 +195,7 @@ export function LessonWorkspace({
               </div>
             </div>
           </div>
+          {reviewPanel}
         </div>
       ) : (
         <div className="workspace-layer-stack">

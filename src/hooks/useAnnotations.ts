@@ -160,6 +160,14 @@ export function useAnnotations(documentId: string | null, pageNumber: number) {
     })
   }, [])
 
+  const hasDocumentAnnotations = useCallback((targetDocumentId: string) => {
+    const documentAnnotations = store[targetDocumentId]
+    if (!documentAnnotations) return false
+    return Object.values(documentAnnotations.pages).some((history) => (
+      history.present.length > 0 || history.past.some((snapshot) => snapshot.length > 0) || history.future.some((snapshot) => snapshot.length > 0)
+    ))
+  }, [store])
+
   const migrateCurrentToLogicalY = useCallback((previousWorkspaceHeight: number) => {
     if (!documentId) return
 
@@ -210,6 +218,7 @@ export function useAnnotations(documentId: string | null, pageNumber: number) {
     isVisible,
     toggleVisibility,
     removeDocumentAnnotations,
+    hasDocumentAnnotations,
     migrateCurrentToLogicalY,
   }
 }
