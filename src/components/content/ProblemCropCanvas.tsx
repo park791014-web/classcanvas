@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
 import type { SourceRegion } from '../../types/content'
+import type { PdfViewportMetrics } from '../../types/pdf'
 
 export interface ContentCropCanvasProps {
   document: PDFDocumentProxy
@@ -10,6 +11,7 @@ export interface ContentCropCanvasProps {
   availableHeight?: number
   title: string
   fitMode?: 'width' | 'adaptive'
+  onMetricsChange?: (metrics: PdfViewportMetrics) => void
 }
 
 const MAX_RENDER_SCALE = 4
@@ -38,6 +40,7 @@ export function ContentCropCanvas({
   availableHeight = Number.POSITIVE_INFINITY,
   title,
   fitMode = 'width',
+  onMetricsChange,
 }: ContentCropCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const renderTaskRef = useRef<RenderTask | null>(null)
@@ -75,6 +78,7 @@ export function ContentCropCanvas({
         canvas.style.width = `${cropWidth}px`
         canvas.style.height = `${cropHeight}px`
         canvas.dataset.renderScale = scale.toFixed(3)
+        onMetricsChange?.({ pageNumber, scale, width: cropWidth, height: cropHeight, baseWidth: sourceWidth, baseHeight: sourceHeight, outputScale })
 
         const renderTask = page.render({
           canvas,
@@ -98,7 +102,7 @@ export function ContentCropCanvas({
       renderTaskRef.current?.cancel()
       renderTaskRef.current = null
     }
-  }, [availableHeight, availableWidth, document, fitMode, pageNumber, region])
+  }, [availableHeight, availableWidth, document, fitMode, onMetricsChange, pageNumber, region])
 
   return (
     <canvas

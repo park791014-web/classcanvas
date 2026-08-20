@@ -4,6 +4,7 @@ import { validatePdfFile } from '../../hooks/usePdfDocument'
 interface PdfDropZoneProps {
   children: ReactNode
   hasDocument: boolean
+  sidebarCollapsed?: boolean
   onFileSelected: (file: File) => void
 }
 
@@ -11,7 +12,7 @@ function containsFiles(event: DragEvent<HTMLElement>) {
   return Array.from(event.dataTransfer.types).includes('Files')
 }
 
-export function PdfDropZone({ children, hasDocument, onFileSelected }: PdfDropZoneProps) {
+export function PdfDropZone({ children, hasDocument, sidebarCollapsed = false, onFileSelected }: PdfDropZoneProps) {
   const dragDepthRef = useRef(0)
   const [isDraggingFile, setIsDraggingFile] = useState(false)
   const [dropError, setDropError] = useState<string | null>(null)
@@ -58,7 +59,7 @@ export function PdfDropZone({ children, hasDocument, onFileSelected }: PdfDropZo
 
   return (
     <main
-      className={`lesson-layout pdf-drop-zone${isDraggingFile ? ' is-dragging-file' : ''}`}
+      className={`lesson-layout pdf-drop-zone${sidebarCollapsed ? ' is-sidebar-collapsed' : ''}${isDraggingFile ? ' is-dragging-file' : ''}`}
       aria-label="수업 작업 영역"
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}

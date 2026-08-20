@@ -15,6 +15,8 @@ interface ProblemWorkspaceProps {
   onAddStroke: (stroke: AnnotationStroke) => void
   onEraseStrokes: (strokeIds: string[]) => void
   onExpandWorkspace: () => void
+  active: boolean
+  onActivate: () => void
 }
 
 function getProblemOutputScale(workspaceHeight: number) {
@@ -33,6 +35,8 @@ export function ProblemWorkspace({
   onAddStroke,
   onEraseStrokes,
   onExpandWorkspace,
+  active,
+  onActivate,
 }: ProblemWorkspaceProps) {
   const [solutionElement, setSolutionElement] = useState<HTMLDivElement | null>(null)
   const solutionSize = useElementSize(solutionElement)
@@ -49,14 +53,7 @@ export function ProblemWorkspace({
   }), [workspaceHeight, workspaceWidth])
 
   return (
-    <section className="problem-solution-section" aria-labelledby="solution-space-title">
-      <div className="solution-space-heading">
-        <div>
-          <p>문제 풀이</p>
-          <h3 id="solution-space-title">풀이 판서 공간</h3>
-        </div>
-        <span>현재 {workspaceHeight.toLocaleString()}px · 아래로 이동하며 계속 판서할 수 있습니다.</span>
-      </div>
+    <section className={`problem-solution-section${active ? ' is-active' : ''}`} aria-label={`${title} 풀이 판서 공간`} onPointerDownCapture={onActivate}>
       <div
         className="problem-solution-canvas-space"
         ref={setSolutionElement}
@@ -66,7 +63,7 @@ export function ProblemWorkspace({
         <AnnotationCanvas
           metrics={annotationMetrics}
           strokes={annotationStrokes}
-          activeTool={annotationTool}
+          activeTool={active ? annotationTool : 'none'}
           settings={annotationSettings}
           isVisible={annotationsVisible}
           onAddStroke={onAddStroke}
@@ -75,9 +72,6 @@ export function ProblemWorkspace({
           coordinateScope="problem-workspace"
           coordinateMode="problem-logical-y"
         />
-        {annotationStrokes.length === 0 && annotationTool === 'none' && (
-          <p className="solution-space-guide">하단에서 펜을 선택한 뒤 이 공간에 풀이하세요.</p>
-        )}
       </div>
       <div className="workspace-extension-action">
         <button type="button" onClick={onExpandWorkspace} disabled={!canExpandWorkspace}>

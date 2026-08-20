@@ -6,6 +6,7 @@ import { LessonNavigator } from './components/layout/LessonNavigator'
 import { LessonWorkspace } from './components/layout/LessonWorkspace'
 import { ToolBar } from './components/layout/ToolBar'
 import { TopBar } from './components/layout/TopBar'
+import { WhiteboardView } from './components/whiteboard/WhiteboardView'
 import { PdfDropZone } from './components/pdf/PdfDropZone'
 import { useAnnotations } from './hooks/useAnnotations'
 import { useAnalysisCandidates } from './hooks/useAnalysisCandidates'
@@ -15,6 +16,7 @@ import { INITIAL_PROBLEM_WORKSPACE_HEIGHT, useProblemWorkspaces } from './hooks/
 import { isCropContentBlock, isProblemContentBlock } from './types/content'
 import type { ContentBlock, ContentType, SourceRegion } from './types/content'
 import type { AnalysisCandidate, AnalysisProgress, AnalysisScope } from './types/analysis'
+import type { AnnotationSettings, AnnotationTool, DrawingStyle, DrawingTool } from './types/annotation'
 import type { DocumentState, ZoomMode } from './types/pdf'
 import { analyzePage } from './services/contentAnalysis/analyzePage'
 
@@ -22,6 +24,14 @@ const MIN_SCALE = 0.5
 const MAX_SCALE = 2.5
 const SCALE_STEP = 0.25
 const IDLE_ANALYSIS_PROGRESS: AnalysisProgress = { running: false, currentPage: 0, completedPages: 0, totalPages: 0 }
+const DEFAULT_DRAWING_SETTINGS: AnnotationSettings = {
+  pen: { color: '#111827', widthPreset: 'normal' },
+  highlighter: { color: '#facc15', widthPreset: 'normal' },
+}
+
+function isPersistentDrawingTool(tool: AnnotationTool) {
+  return tool === 'pen' || tool === 'highlighter' || tool === 'eraser'
+}
 
 function App() {
   const { loadedPdf, status, error, openPdf } = usePdfDocument()
@@ -34,6 +44,12 @@ function App() {
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress>(IDLE_ANALYSIS_PROGRESS)
   const [analysisNotice, setAnalysisNotice] = useState<string | null>(null)
   const [analysisReviewOpen, setAnalysisReviewOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => sessionStorage.getItem('lessoncanvas:sidebar-collapsed') === 'true')
+  const [workspaceMode, setWorkspaceMode] = useState<'textbook' | 'whiteboard'>('textbook')
+  const [contentAnnotationSurface, setContentAnnotationSurface] = useState<'source' | 'notes'>('source')
+  const [problemAnnotationSurface, setProblemAnnotationSurface] = useState<'source' | 'solution'>('solution')
+  const [selectedTool, setSelectedTool] = useState<AnnotationTool>('pen')
+  const [drawingSettings, setDrawingSettings] = useState<AnnotationSettings>(DEFAULT_DRAWING_SETTINGS)
   const analysisAbortRef = useRef<AbortController | null>(null)
   const contentBlocks = useContentBlocks(loadedPdf?.documentId ?? null)
   const analysisCandidates = useAnalysisCandidates(loadedPdf?.documentId ?? null)
@@ -53,14 +69,24 @@ function App() {
     ? `problem:${loadedPdf.documentId}:${focusedProblem.id}`
     : null
   const problemAnnotations = useAnnotations(problemAnnotationDocumentId, 1)
+  const problemSourceAnnotations = useAnnotations(loadedPdf && focusedProblem ? `content:${loadedPdf.documentId}:${focusedProblem.id}` : null, 1)
+  const whiteboardAnnotations = useAnnotations('whiteboard:session', 1)
+  const contentSourceAnnotations = useAnnotations(loadedPdf && focusedCrop ? `content:${loadedPdf.documentId}:${focusedCrop.id}` : null, 1)
+  const contentNotesAnnotations = useAnnotations(loadedPdf && focusedCrop ? `content-notes:${loadedPdf.documentId}:${focusedCrop.id}` : null, 1)
   const problemWorkspace = useProblemWorkspaces(problemAnnotationDocumentId)
-  const activeAnnotations = focusedProblem ? problemAnnotations : pageAnnotations
-  const isCropFocus = Boolean(focusedCrop)
+  const activeAnnotations = workspaceMode === 'whiteboard'
+    ? whiteboardAnnotations
+    : focusedProblem ? (problemAnnotationSurface === 'source' ? problemSourceAnnotations : problemAnnotations)
+      : focusedCrop ? (contentAnnotationSurface === 'source' ? contentSourceAnnotations : contentNotesAnnotations)
+        : pageAnnotations
 
   useEffect(() => {
     if (!problemAnnotationDocumentId) return
     problemAnnotations.migrateCurrentToLogicalY(INITIAL_PROBLEM_WORKSPACE_HEIGHT)
   }, [problemAnnotationDocumentId, problemAnnotations.migrateCurrentToLogicalY])
+
+  useEffect(() => setContentAnnotationSurface('source'), [focusedCrop?.id])
+  useEffect(() => setProblemAnnotationSurface('solution'), [focusedProblem?.id])
 
   useEffect(() => {
     if (status === 'loading' || status === 'error') setDocumentState(null)
@@ -81,6 +107,10 @@ function App() {
       zoomMode: 'page-fit',
     })
   }, [loadedPdf])
+
+  useEffect(() => {
+    sessionStorage.setItem('lessoncanvas:sidebar-collapsed', String(sidebarCollapsed))
+  }, [sidebarCollapsed])
 
   useEffect(() => () => analysisAbortRef.current?.abort(), [])
 
@@ -149,6 +179,17 @@ function App() {
   const activeState = loadedPdf ? documentState : null
   const visibleError = selectionError ?? error
 
+  const ensureDrawingTool = useCallback(() => {
+    setSelectedTool((current) => isPersistentDrawingTool(current) ? current : 'pen')
+  }, [])
+
+  const updateDrawingStyle = useCallback((tool: DrawingTool, style: Partial<DrawingStyle>) => {
+    setDrawingSettings((current) => ({
+      ...current,
+      [tool]: { ...current[tool], ...style },
+    }))
+  }, [])
+
   const handleSaveBlock = useCallback((region: SourceRegion, type: ContentType, title: string) => {
     if (!activeState) return
     contentBlocks.addBlock({
@@ -158,14 +199,20 @@ function App() {
       type,
       title,
     })
-    pageAnnotations.setActiveTool('none')
-  }, [activeState, contentBlocks, pageAnnotations])
+    setSelectedTool('pen')
+  }, [activeState, contentBlocks])
 
   const handleSelectBlock = useCallback((block: ContentBlock) => {
+    ensureDrawingTool()
     setDocumentState((current) => current ? { ...current, currentPage: block.sourcePage } : current)
     setSelectedContentId(block.id)
     setActiveCandidateId(null)
-  }, [])
+  }, [ensureDrawingTool])
+
+  const toggleWhiteboard = useCallback(() => {
+    ensureDrawingTool()
+    setWorkspaceMode((current) => current === 'whiteboard' ? 'textbook' : 'whiteboard')
+  }, [ensureDrawingTool])
 
   const handleSelectCandidate = useCallback((candidate: AnalysisCandidate) => {
     setSelectedContentId(null)
@@ -293,9 +340,13 @@ function App() {
         problemWorkspace.removeWorkspace(targetId)
       }
     }
+    if (loadedPdf) {
+      contentSourceAnnotations.removeDocumentAnnotations(`content:${loadedPdf.documentId}:${block.id}`)
+      contentNotesAnnotations.removeDocumentAnnotations(`content-notes:${loadedPdf.documentId}:${block.id}`)
+    }
     contentBlocks.removeBlock(block.id)
     if (selectedContentId === block.id) setSelectedContentId(null)
-  }, [contentBlocks, problemAnnotations, problemTargetId, problemWorkspace, selectedContentId])
+  }, [contentBlocks, contentNotesAnnotations, contentSourceAnnotations, loadedPdf, problemAnnotations, problemTargetId, problemWorkspace, selectedContentId])
 
   return (
     <div className="app-shell">
@@ -306,8 +357,10 @@ function App() {
         onZoomIn={() => activeState && changeScale(activeState.scale + SCALE_STEP)}
         onPageFit={() => activeState && changeScale(activeState.scale, 'page-fit')}
         onWidthFit={() => activeState && changeScale(activeState.scale, 'width-fit')}
+        onPreviousPage={() => movePage(-1)}
+        onNextPage={() => movePage(1)}
       />
-      <PdfDropZone hasDocument={Boolean(activeState)} onFileSelected={handleFileSelected}>
+      <PdfDropZone hasDocument={Boolean(activeState)} sidebarCollapsed={sidebarCollapsed} onFileSelected={handleFileSelected}>
         <LessonNavigator
           documentState={activeState}
           status={status}
@@ -328,15 +381,27 @@ function App() {
           onAnalyze={() => { void handleAnalyze() }}
           onCancelAnalysis={() => analysisAbortRef.current?.abort()}
           onOpenAnalysisReview={() => { setSelectedContentId(null); setAnalysisReviewOpen(true) }}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
         />
-        {focusedProblem && loadedPdf ? (
+        {workspaceMode === 'whiteboard' ? (
+          <WhiteboardView
+            strokes={whiteboardAnnotations.strokes}
+            activeTool={selectedTool}
+            settings={drawingSettings}
+            isVisible={whiteboardAnnotations.isVisible}
+            onAddStroke={whiteboardAnnotations.addStroke}
+            onEraseStrokes={whiteboardAnnotations.eraseStrokes}
+            onReturnToTextbook={() => setWorkspaceMode('textbook')}
+          />
+        ) : focusedProblem && loadedPdf ? (
           <section className="lesson-workspace" aria-label="문제 집중 보기">
             <ProblemFocusView
               loadedPdf={loadedPdf}
               problem={focusedProblem}
               annotationStrokes={problemAnnotations.strokes}
-              annotationTool={problemAnnotations.activeTool}
-              annotationSettings={problemAnnotations.settings}
+              annotationTool={selectedTool}
+              annotationSettings={drawingSettings}
               annotationsVisible={problemAnnotations.isVisible}
               onAddStroke={problemAnnotations.addStroke}
               onEraseStrokes={problemAnnotations.eraseStrokes}
@@ -344,11 +409,43 @@ function App() {
               workspaceHeight={problemWorkspace.workspaceHeight}
               canExpandWorkspace={problemWorkspace.canExpand}
               onExpandWorkspace={problemWorkspace.expandWorkspace}
+              sourceAnnotations={{
+                strokes: problemSourceAnnotations.strokes,
+                activeTool: selectedTool,
+                settings: drawingSettings,
+                isVisible: problemSourceAnnotations.isVisible,
+                onAddStroke: problemSourceAnnotations.addStroke,
+                onEraseStrokes: problemSourceAnnotations.eraseStrokes,
+              }}
+              activeSurface={problemAnnotationSurface}
+              onActiveSurfaceChange={(surface) => { ensureDrawingTool(); setProblemAnnotationSurface(surface) }}
             />
           </section>
         ) : focusedCrop && loadedPdf ? (
           <section className="lesson-workspace" aria-label="콘텐츠 집중 보기">
-            <ContentFocusView loadedPdf={loadedPdf} block={focusedCrop} onReturnToTextbook={() => setSelectedContentId(null)} />
+            <ContentFocusView
+              loadedPdf={loadedPdf}
+              block={focusedCrop}
+              sourceAnnotations={{
+                strokes: contentSourceAnnotations.strokes,
+                activeTool: selectedTool,
+                settings: drawingSettings,
+                isVisible: contentSourceAnnotations.isVisible,
+                onAddStroke: contentSourceAnnotations.addStroke,
+                onEraseStrokes: contentSourceAnnotations.eraseStrokes,
+              }}
+              notesAnnotations={{
+                strokes: contentNotesAnnotations.strokes,
+                activeTool: selectedTool,
+                settings: drawingSettings,
+                isVisible: contentNotesAnnotations.isVisible,
+                onAddStroke: contentNotesAnnotations.addStroke,
+                onEraseStrokes: contentNotesAnnotations.eraseStrokes,
+              }}
+              activeSurface={contentAnnotationSurface}
+              onActiveSurfaceChange={(surface) => { ensureDrawingTool(); setContentAnnotationSurface(surface) }}
+              onReturnToTextbook={() => setSelectedContentId(null)}
+            />
           </section>
         ) : (
           <LessonWorkspace
@@ -360,8 +457,8 @@ function App() {
             onFileSelected={handleFileSelected}
             onScaleChange={changeScale}
             annotationStrokes={pageAnnotations.strokes}
-            annotationTool={pageAnnotations.activeTool}
-            annotationSettings={pageAnnotations.settings}
+            annotationTool={selectedTool}
+            annotationSettings={drawingSettings}
             annotationsVisible={pageAnnotations.isVisible}
             onAddStroke={pageAnnotations.addStroke}
             onEraseStrokes={pageAnnotations.eraseStrokes}
@@ -405,19 +502,20 @@ function App() {
         )}
       </PdfDropZone>
       <ToolBar
-        hasDocument={Boolean(activeState) && !isCropFocus}
-        activeTool={activeAnnotations.activeTool}
-        settings={activeAnnotations.settings}
+        hasDocument={Boolean(activeState) || workspaceMode === 'whiteboard'}
+        activeTool={selectedTool}
+        settings={drawingSettings}
         isVisible={activeAnnotations.isVisible}
         canUndo={activeAnnotations.canUndo}
         canRedo={activeAnnotations.canRedo}
-        onToolChange={activeAnnotations.setActiveTool}
-        onStyleChange={activeAnnotations.updateDrawingStyle}
+        onToolChange={setSelectedTool}
+        onStyleChange={updateDrawingStyle}
         onUndo={activeAnnotations.undo}
         onRedo={activeAnnotations.redo}
         onToggleVisibility={activeAnnotations.toggleVisibility}
-        allowRegionSelect={!focusedProblem && !focusedCrop}
-        contextLabel={focusedProblem ? '문제 풀이' : focusedCrop ? '콘텐츠 보기' : '교과서'}
+        allowRegionSelect={workspaceMode === 'textbook' && !focusedProblem && !focusedCrop}
+        isWhiteboard={workspaceMode === 'whiteboard'}
+        onToggleWhiteboard={toggleWhiteboard}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { PdfFileButton } from '../pdf/PdfFileButton'
 import { PdfPageCanvas } from '../pdf/PdfPageCanvas'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
@@ -69,6 +69,7 @@ export function LessonWorkspace({
   const [coordinateSpace, setCoordinateSpace] = useState<HTMLDivElement | null>(null)
   const [isRendering, setIsRendering] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
+  const previousPageRef = useRef<number | null>(null)
 
   const handleRenderStateChange = useCallback((rendering: boolean, nextError?: string) => {
     setIsRendering(rendering)
@@ -106,8 +107,14 @@ export function LessonWorkspace({
 
   useEffect(() => {
     const activeTarget = activeAnalysisCandidate ?? activeContentBlock
-    if (!activeTarget || !documentState || !pageMetrics || !viewportElement || !coordinateSpace) return
-    if (activeTarget.sourcePage !== documentState.currentPage || pageMetrics.pageNumber !== documentState.currentPage) return
+    if (!documentState || !pageMetrics || !viewportElement || !coordinateSpace) return
+    if (pageMetrics.pageNumber !== documentState.currentPage) return
+    const pageChanged = previousPageRef.current !== documentState.currentPage
+    previousPageRef.current = documentState.currentPage
+    if (!activeTarget || activeTarget.sourcePage !== documentState.currentPage) {
+      if (pageChanged) viewportElement.scrollTo({ left: 0, top: 0 })
+      return
+    }
     const region = activeTarget.sourceRegion
     viewportElement.scrollTo({
       left: Math.max(0, coordinateSpace.offsetLeft + pageMetrics.width * (region.x + region.width / 2) - viewportElement.clientWidth / 2),
@@ -122,6 +129,7 @@ export function LessonWorkspace({
     && Math.abs(pageMetrics.scale - documentState.scale) < 0.005
     ? pageMetrics
     : null
+  const selectorReady = Boolean(documentState && pageMetrics && pageMetrics.pageNumber === documentState.currentPage)
   const currentPageBlocks = documentState
     ? blocks.filter((block) => block.sourcePage === documentState.currentPage)
     : []
@@ -181,7 +189,7 @@ export function LessonWorkspace({
                 )}
               </div>
               <div className="workspace-ui-layer workspace-ui-layer--overlay" aria-live="polite">
-                {annotationMetrics && (
+                {selectorReady && (
                   <RegionSelector
                     active={annotationTool === 'region-select'}
                     defaultTitles={nextTitles}

@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import type { AnnotationSettings, AnnotationTool, DrawingStyle, DrawingTool, StrokeWidthPreset } from '../../types/annotation'
 
 interface ToolBarProps {
@@ -14,16 +14,9 @@ interface ToolBarProps {
   onRedo: () => void
   onToggleVisibility: () => void
   allowRegionSelect: boolean
-  contextLabel?: string
+  isWhiteboard: boolean
+  onToggleWhiteboard: () => void
 }
-
-const TOOLS: { tool: AnnotationTool; label: string }[] = [
-  { tool: 'none', label: '탐색' },
-  { tool: 'pen', label: '펜' },
-  { tool: 'highlighter', label: '형광펜' },
-  { tool: 'eraser', label: '지우개' },
-  { tool: 'region-select', label: '영역 선택' },
-]
 
 const COLORS = [
   { value: '#111827', label: '검정' },
@@ -34,9 +27,16 @@ const COLORS = [
 ]
 
 const WIDTHS: { value: StrokeWidthPreset; label: string }[] = [
+  { value: 'micro', label: '미세' },
   { value: 'thin', label: '얇게' },
   { value: 'normal', label: '보통' },
   { value: 'thick', label: '굵게' },
+]
+
+const DRAWING_TOOLS: { tool: AnnotationTool; label: string }[] = [
+  { tool: 'pen', label: '펜' },
+  { tool: 'highlighter', label: '형광펜' },
+  { tool: 'eraser', label: '지우개' },
 ]
 
 export function ToolBar({
@@ -52,90 +52,57 @@ export function ToolBar({
   onRedo,
   onToggleVisibility,
   allowRegionSelect,
-  contextLabel = 'PDF',
+  isWhiteboard,
+  onToggleWhiteboard,
 }: ToolBarProps) {
+  const [customColor, setCustomColor] = useState('#7c3aed')
   const drawingTool = activeTool === 'pen' || activeTool === 'highlighter' ? activeTool : null
   const drawingStyle = drawingTool ? settings[drawingTool] : null
 
   return (
     <footer className="tool-bar" aria-label="판서 도구 영역">
-      <div className="toolbar-label">
-        <span className="toolbar-grip" aria-hidden="true" />
-        <div>
-          <strong>판서 도구</strong>
-          <span>{hasDocument ? `${contextLabel} 도구를 선택하세요.` : '수업 자료를 불러온 뒤 사용할 수 있습니다.'}</span>
-        </div>
-      </div>
-
       <div className="annotation-toolbar-controls">
+        <div className="toolbar-mode-controls" aria-label="수업 화면 모드">
+          <button type="button" className={isWhiteboard ? 'is-active' : undefined} aria-pressed={isWhiteboard} onClick={onToggleWhiteboard}>
+            {isWhiteboard ? '교과서' : '빈 칠판'}
+          </button>
+          <button type="button" className={activeTool === 'none' ? 'is-active' : undefined} aria-pressed={activeTool === 'none'} disabled={!hasDocument} onClick={() => onToolChange('none')}>탐색</button>
+          <button type="button" className={activeTool === 'region-select' ? 'is-active' : undefined} aria-pressed={activeTool === 'region-select'}
+            disabled={!hasDocument || !allowRegionSelect} onClick={() => onToolChange('region-select')}>영역 선택</button>
+        </div>
+
         <div className="tool-button-group" aria-label="판서 도구 선택">
-          {TOOLS.map(({ tool, label }) => (
-            <button
-              type="button"
-              key={tool}
-              className={activeTool === tool ? 'is-active' : undefined}
-              aria-pressed={activeTool === tool}
-              disabled={
-                !hasDocument
-                || (tool === 'region-select' && !allowRegionSelect)
-                || (!isVisible && tool !== 'none' && tool !== 'region-select')
-              }
-              onClick={() => onToolChange(tool)}
-            >
-              {label}
-            </button>
+          {DRAWING_TOOLS.map(({ tool, label }) => (
+            <button type="button" key={tool} className={activeTool === tool ? 'is-active' : undefined} aria-pressed={activeTool === tool}
+              disabled={!hasDocument || !isVisible} onClick={() => onToolChange(tool)}>{label}</button>
           ))}
         </div>
 
-        <div className="drawing-style-controls" aria-label="선 색상과 굵기">
-          {drawingTool && drawingStyle ? (
-            <>
-              <div className="color-controls" aria-label="선 색상">
-                {COLORS.map((color) => (
-                  <button
-                    type="button"
-                    key={color.value}
-                    className={drawingStyle.color === color.value ? 'color-button is-active' : 'color-button'}
-                    style={{ '--swatch-color': color.value } as CSSProperties}
-                    aria-label={`${color.label} 색상`}
-                    aria-pressed={drawingStyle.color === color.value}
-                    disabled={!isVisible}
-                    onClick={() => onStyleChange(drawingTool, { color: color.value })}
-                  />
-                ))}
-              </div>
-              <div className="width-controls" aria-label="선 굵기">
-                {WIDTHS.map((width) => (
-                  <button
-                    type="button"
-                    key={width.value}
-                    className={drawingStyle.widthPreset === width.value ? 'is-active' : undefined}
-                    aria-pressed={drawingStyle.widthPreset === width.value}
-                    disabled={!isVisible}
-                    onClick={() => onStyleChange(drawingTool, { widthPreset: width.value })}
-                  >
-                    {width.label}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : activeTool === 'region-select' ? (
-            <span className="drawing-style-hint">PDF 위에서 문제 전체를 드래그해 선택하세요.</span>
-          ) : (
-            <span className="drawing-style-hint">펜 또는 형광펜을 선택하면 색상과 굵기를 조절할 수 있습니다.</span>
-          )}
+        <div className="color-controls" aria-label="선 색상">
+          {COLORS.map((color) => (
+            <button type="button" key={color.value} className={drawingStyle?.color === color.value ? 'color-button is-active' : 'color-button'}
+              style={{ '--swatch-color': color.value } as CSSProperties} aria-label={`${color.label} 색상`} aria-pressed={drawingStyle?.color === color.value}
+              disabled={!hasDocument || !drawingTool || !isVisible} onClick={() => drawingTool && onStyleChange(drawingTool, { color: color.value })} />
+          ))}
+          <label className={`custom-color-button${drawingStyle?.color === customColor ? ' is-active' : ''}`} title="사용자 지정 색상">
+            <span aria-hidden="true">＋</span>
+            <input type="color" value={customColor} disabled={!hasDocument || !drawingTool || !isVisible} aria-label="사용자 지정 색상 선택"
+              onChange={(event) => { setCustomColor(event.target.value); if (drawingTool) onStyleChange(drawingTool, { color: event.target.value }) }} />
+          </label>
+        </div>
+
+        <div className="width-controls" aria-label="선 굵기">
+          {WIDTHS.map((width) => (
+            <button type="button" key={width.value} className={drawingStyle?.widthPreset === width.value ? 'is-active' : undefined}
+              aria-pressed={drawingStyle?.widthPreset === width.value} disabled={!hasDocument || !drawingTool || !isVisible}
+              onClick={() => drawingTool && onStyleChange(drawingTool, { widthPreset: width.value })}>{width.label}</button>
+          ))}
         </div>
 
         <div className="history-controls" aria-label="판서 기록 제어">
           <button type="button" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="판서 실행 취소">실행 취소</button>
           <button type="button" disabled={!hasDocument || !canRedo} onClick={onRedo} aria-label="판서 다시 실행">다시 실행</button>
-          <button
-            type="button"
-            className={!isVisible ? 'is-active' : undefined}
-            disabled={!hasDocument}
-            aria-pressed={!isVisible}
-            onClick={onToggleVisibility}
-          >
+          <button type="button" className={!isVisible ? 'is-active' : undefined} disabled={!hasDocument} aria-pressed={!isVisible} onClick={onToggleVisibility}>
             {isVisible ? '판서 숨기기' : '판서 보이기'}
           </button>
         </div>

@@ -24,8 +24,8 @@ interface AnnotationCanvasProps {
 }
 
 const WIDTHS: Record<DrawingTool, Record<StrokeWidthPreset, number>> = {
-  pen: { thin: 0.0022, normal: 0.0038, thick: 0.0065 },
-  highlighter: { thin: 0.012, normal: 0.022, thick: 0.034 },
+  pen: { micro: 0.0013, thin: 0.0022, normal: 0.0038, thick: 0.0065 },
+  highlighter: { micro: 0.007, thin: 0.012, normal: 0.022, thick: 0.034 },
 }
 
 const ERASER_RADIUS = 18

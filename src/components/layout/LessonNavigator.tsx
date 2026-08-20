@@ -28,6 +28,8 @@ interface LessonNavigatorProps {
   onAnalyze: () => void
   onCancelAnalysis: () => void
   onOpenAnalysisReview: () => void
+  collapsed: boolean
+  onToggleCollapsed: () => void
 }
 
 function sortByTextbookOrder(blocks: ContentBlock[]) {
@@ -54,6 +56,8 @@ export function LessonNavigator({
   onAnalyze,
   onCancelAnalysis,
   onOpenAnalysisReview,
+  collapsed,
+  onToggleCollapsed,
 }: LessonNavigatorProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
@@ -138,19 +142,22 @@ export function LessonNavigator({
     </li>
   )
 
+  if (collapsed) {
+    return (
+      <aside className="lesson-navigator lesson-navigator--collapsed" aria-label="접힌 수업 내비게이터">
+        <button type="button" className="navigator-toggle" onClick={onToggleCollapsed} aria-label="수업 내비게이터 펼치기" title="내비게이터 펼치기">›</button>
+      </aside>
+    )
+  }
+
   return (
     <aside className="lesson-navigator" aria-labelledby="navigator-title">
       <div className="panel-heading">
-        <p className="eyebrow">수업 흐름</p>
-        <h2 id="navigator-title">수업 내비게이터</h2>
+        <h2 id="navigator-title">내비게이터</h2>
+        <button type="button" className="navigator-toggle" onClick={onToggleCollapsed} aria-label="수업 내비게이터 접기" title="내비게이터 접기">‹</button>
       </div>
       {documentState ? (
         <div className="navigator-document">
-          <section className="document-summary" aria-labelledby="document-summary-title">
-            <p className="navigator-section-label" id="document-summary-title">현재 PDF</p>
-            <strong title={documentState.fileName}>{documentState.fileName}</strong>
-            <span>전체 {documentState.totalPages}페이지</span>
-          </section>
           <section className="navigator-page-control" aria-labelledby="page-navigation-title">
             <p className="navigator-section-label" id="page-navigation-title">페이지 이동</p>
             <PageNumberInput compact currentPage={documentState.currentPage} totalPages={documentState.totalPages} onPageChange={onPageChange} />
@@ -160,38 +167,32 @@ export function LessonNavigator({
             </div>
           </section>
           <section className="navigator-analysis-control" aria-labelledby="analysis-control-title">
-            <div className="navigator-content-heading">
-              <p className="navigator-section-label" id="analysis-control-title">콘텐츠 자동 분석</p>
-              {analysisCandidateCount > 0 && <button type="button" onClick={onOpenAnalysisReview}>{analysisCandidateCount}개 검수</button>}
-            </div>
-            <select
-              aria-label="자동 분석 범위"
-              value={analysisScope}
-              disabled={analysisProgress.running}
-              onChange={(event) => onAnalysisScopeChange(event.target.value as AnalysisScope)}
-            >
-              <option value="page">현재 페이지</option>
-              <option value="document">전체 문서</option>
-            </select>
-            {analysisProgress.running ? (
-              <div className="analysis-progress" role="status">
-                <span>p.{analysisProgress.currentPage} 분석 중 · {analysisProgress.completedPages} / {analysisProgress.totalPages}</span>
-                <progress value={analysisProgress.completedPages} max={analysisProgress.totalPages} />
-                <button type="button" onClick={onCancelAnalysis}>분석 중지</button>
+            <details>
+              <summary id="analysis-control-title">자동분석{analysisCandidateCount > 0 ? ` · ${analysisCandidateCount}개` : ''}</summary>
+              <div className="navigator-analysis-body">
+                <div className="navigator-content-tabs" role="tablist" aria-label="분석 범위 기준">
+                  <button type="button" role="tab" aria-selected="true">현재 페이지</button>
+                  <button type="button" role="tab" aria-selected="false" disabled title="단원 정보 연동 후 사용할 수 있습니다.">현재 단원</button>
+                </div>
+                {analysisCandidateCount > 0 && <button type="button" onClick={onOpenAnalysisReview}>후보 검수</button>}
+                <select aria-label="자동 분석 범위" value={analysisScope} disabled={analysisProgress.running} onChange={(event) => onAnalysisScopeChange(event.target.value as AnalysisScope)}>
+                  <option value="page">현재 페이지</option>
+                  <option value="document">전체 문서</option>
+                </select>
+                {analysisProgress.running ? (
+                  <div className="analysis-progress" role="status">
+                    <span>p.{analysisProgress.currentPage} · {analysisProgress.completedPages}/{analysisProgress.totalPages}</span>
+                    <progress value={analysisProgress.completedPages} max={analysisProgress.totalPages} />
+                    <button type="button" onClick={onCancelAnalysis}>중지</button>
+                  </div>
+                ) : <button type="button" className="analysis-start-button" onClick={onAnalyze}>분석 시작</button>}
+                {analysisNotice && <p className="analysis-notice" role="status">{analysisNotice}</p>}
               </div>
-            ) : (
-              <button type="button" className="analysis-start-button" onClick={onAnalyze}>자동 분석</button>
-            )}
-            {analysisNotice && <p className="analysis-notice" role="status">{analysisNotice}</p>}
-            <p className="analysis-local-note">PDF 텍스트를 브라우저 안에서만 분석합니다.</p>
+            </details>
           </section>
           <section className="navigator-content-blocks" aria-labelledby="content-list-title">
-            <div className="navigator-content-tabs" role="tablist" aria-label="콘텐츠 범위">
-              <button type="button" role="tab" aria-selected="true">현재 페이지</button>
-              <button type="button" role="tab" aria-selected="false" disabled title="단원 정보 연동 후 사용할 수 있습니다.">현재 단원</button>
-            </div>
             <div className="navigator-content-heading">
-              <p className="navigator-section-label" id="content-list-title">현재 페이지 · p.{documentState.currentPage}</p>
+              <p className="navigator-section-label" id="content-list-title">p.{documentState.currentPage} 콘텐츠</p>
               <span>{currentPageBlocks.length}개</span>
             </div>
             {currentPageBlocks.length > 0
@@ -206,7 +207,6 @@ export function LessonNavigator({
           </section>
           <div className="navigator-file-action">
             <PdfFileButton label="다른 PDF 열기" onFileSelected={onFileSelected} />
-            <p>선택한 파일은 브라우저 안에서만 처리됩니다.</p>
           </div>
         </div>
       ) : (

@@ -2,7 +2,7 @@ export type AnnotationTool = 'none' | 'pen' | 'highlighter' | 'eraser' | 'region
 
 export type DrawingTool = Exclude<AnnotationTool, 'none' | 'eraser' | 'region-select'>
 
-export type StrokeWidthPreset = 'thin' | 'normal' | 'thick'
+export type StrokeWidthPreset = 'micro' | 'thin' | 'normal' | 'thick'
 
 export type AnnotationCoordinateMode = 'normalized' | 'problem-logical-y'
 
