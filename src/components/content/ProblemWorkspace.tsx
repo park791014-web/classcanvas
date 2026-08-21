@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
@@ -39,8 +39,13 @@ export function ProblemWorkspace({
   onActivate,
 }: ProblemWorkspaceProps) {
   const [solutionElement, setSolutionElement] = useState<HTMLDivElement | null>(null)
+  const [logicalWidth, setLogicalWidth] = useState<number | null>(null)
   const solutionSize = useElementSize(solutionElement)
-  const workspaceWidth = Math.max(1, solutionSize.width)
+  useEffect(() => {
+    if (logicalWidth || solutionSize.width <= 0) return
+    setLogicalWidth(solutionSize.width)
+  }, [logicalWidth, solutionSize.width])
+  const workspaceWidth = Math.max(1, logicalWidth ?? solutionSize.width)
 
   const annotationMetrics = useMemo<PdfViewportMetrics>(() => ({
     pageNumber: 1,
@@ -57,7 +62,7 @@ export function ProblemWorkspace({
       <div
         className="problem-solution-canvas-space"
         ref={setSolutionElement}
-        style={{ height: workspaceHeight }}
+        style={{ width: logicalWidth ?? '100%', height: workspaceHeight }}
         data-workspace-height={workspaceHeight}
       >
         <AnnotationCanvas

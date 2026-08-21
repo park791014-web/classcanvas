@@ -1,4 +1,11 @@
 export type ContentType = 'explanation' | 'problem' | 'material'
+export type ContentViewMode = 'canvas' | 'vertical' | 'horizontal'
+
+export const CONTENT_VIEW_MODE_LABELS: Record<ContentViewMode, string> = {
+  canvas: '캔버스',
+  vertical: '상하',
+  horizontal: '좌우',
+}
 
 export type LegacyContentType =
   | 'concept'

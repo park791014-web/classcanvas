@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useElementSize } from '../../hooks/useElementSize'
 import { ProblemPreviewArea } from './ProblemPreviewArea'
 import { ProblemWorkspace } from './ProblemWorkspace'
+import { ContentViewModeSelector } from './ContentViewModeSelector'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
-import type { ProblemContentBlock } from '../../types/content'
+import type { ContentViewMode, ProblemContentBlock } from '../../types/content'
 import type { LoadedPdfDocument } from '../../types/pdf'
 import type { ContentAnnotationSurface } from './ContentFocusView'
 
@@ -23,6 +24,8 @@ interface ProblemFocusViewProps {
   sourceAnnotations: ContentAnnotationSurface
   activeSurface: 'source' | 'solution'
   onActiveSurfaceChange: (surface: 'source' | 'solution') => void
+  viewMode: ContentViewMode
+  onViewModeChange: (mode: ContentViewMode) => void
 }
 
 export function ProblemFocusView({
@@ -41,10 +44,14 @@ export function ProblemFocusView({
   sourceAnnotations,
   activeSurface,
   onActiveSurfaceChange,
+  viewMode,
+  onViewModeChange,
 }: ProblemFocusViewProps) {
   const [bodyElement, setBodyElement] = useState<HTMLDivElement | null>(null)
   const bodySize = useElementSize(bodyElement)
-  const previewMaxHeight = Math.max(120, Math.floor(bodySize.height * 0.3))
+  const previewMaxHeight = viewMode === 'horizontal'
+    ? Math.max(120, bodySize.height)
+    : Math.max(120, Math.floor(bodySize.height * (viewMode === 'canvas' ? 0.45 : 0.35)))
 
   return (
     <div className="problem-focus-view">
@@ -54,10 +61,10 @@ export function ProblemFocusView({
           <span>교과서 p.{problem.sourcePage}</span>
           <strong>{problem.title}</strong>
         </div>
-        <span className="problem-source-share">원문 30% · 풀이 70%</span>
+        <ContentViewModeSelector value={viewMode} onChange={onViewModeChange} />
       </header>
 
-      <div className="problem-focus-body" ref={setBodyElement}>
+      <div className={`problem-focus-body problem-focus-body--${viewMode}`} ref={setBodyElement}>
         <ProblemPreviewArea loadedPdf={loadedPdf} problem={problem} maxHeight={previewMaxHeight} annotation={sourceAnnotations}
           active={activeSurface === 'source'} onActivate={() => onActiveSurfaceChange('source')} />
         <div className="problem-solution-scroll">

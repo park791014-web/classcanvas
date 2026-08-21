@@ -1015,3 +1015,84 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .problem-focus-body { padding: 4px 4px 0; gap: 4px; }
   .problem-focus-controls { min-height: 48px; padding: 4px 7px; }
 }
+
+/* Phase C1: content view modes and stable classroom drawing controls */
+.content-view-mode-selector {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding: 2px;
+  gap: 3px;
+  background: #eef2f7;
+  border: 1px solid #d5dde8;
+}
+.content-view-mode-selector button {
+  min-width: 56px;
+  min-height: 38px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 850;
+}
+.content-view-mode-selector button.is-active {
+  color: #fff;
+  background: #2559bd;
+  border-color: #2559bd;
+}
+
+.content-focus-body--vertical { grid-template-rows: minmax(180px, 35%) minmax(0, 1fr); }
+.content-focus-body--horizontal { grid-template-columns: minmax(280px, 35%) minmax(0, 1fr); }
+.content-focus-body--canvas { grid-template-rows: minmax(240px, 45%) minmax(0, 1fr); }
+.content-focus-body--canvas .content-source-panel {
+  width: min(100%, 920px);
+  justify-self: center;
+}
+.content-notes-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+}
+.content-notes-surface { flex: none; }
+
+.problem-focus-body--vertical { grid-template-rows: minmax(150px, 35%) minmax(0, 1fr); }
+.problem-focus-body--horizontal { grid-template: minmax(0, 1fr) / minmax(280px, 35%) minmax(0, 1fr); }
+.problem-focus-body--canvas { grid-template-rows: minmax(220px, 45%) minmax(0, 1fr); }
+.problem-focus-body--canvas .problem-source-card {
+  width: min(100%, 920px);
+  justify-self: center;
+}
+.problem-focus-body--horizontal .problem-source-card,
+.problem-focus-body--horizontal .problem-solution-scroll { min-height: 0; }
+.problem-focus-body--horizontal .problem-preview-scroll { height: 100%; }
+.problem-preview-scroll { overflow-x: auto; }
+.problem-solution-scroll { overflow: auto; }
+.problem-solution-section { min-width: max-content; }
+
+.tool-bar {
+  display: grid;
+  grid-template-columns: minmax(82px, 1fr) auto minmax(250px, 1fr);
+  justify-content: stretch;
+  padding: 0 12px;
+  gap: 8px;
+}
+.toolbar-label {
+  justify-self: start;
+  color: #344258;
+  font-size: 13px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.annotation-toolbar-controls {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-self: center;
+  width: auto;
+}
+.history-controls { justify-self: end; border-left: 0; }
+.annotation-toolbar-controls .toolbar-mode-controls { border-left: 0; }
+
+@media (max-width: 1500px) {
+  .tool-bar { grid-template-columns: minmax(70px, 1fr) auto minmax(224px, 1fr); padding-inline: 7px; gap: 5px; }
+  .toolbar-label { font-size: 12px; }
+  .content-view-mode-selector button { min-width: 52px; min-height: 36px; padding-inline: 7px; }
+}

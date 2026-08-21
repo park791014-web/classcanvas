@@ -14,7 +14,7 @@ import { useContentBlocks } from './hooks/useContentBlocks'
 import { usePdfDocument, validatePdfFile } from './hooks/usePdfDocument'
 import { INITIAL_PROBLEM_WORKSPACE_HEIGHT, useProblemWorkspaces } from './hooks/useProblemWorkspaces'
 import { isFocusContentBlock, isProblemContentBlock } from './types/content'
-import type { ContentBlock, ContentType, SourceRegion } from './types/content'
+import type { ContentBlock, ContentType, ContentViewMode, SourceRegion } from './types/content'
 import type { AnalysisCandidate, AnalysisProgress, AnalysisScope } from './types/analysis'
 import type { AnnotationSettings, AnnotationTool, DrawingStyle, DrawingTool } from './types/annotation'
 import type { DocumentState, ZoomMode } from './types/pdf'
@@ -48,6 +48,7 @@ function App() {
   const [workspaceMode, setWorkspaceMode] = useState<'textbook' | 'whiteboard'>('textbook')
   const [contentAnnotationSurface, setContentAnnotationSurface] = useState<'source' | 'notes'>('source')
   const [problemAnnotationSurface, setProblemAnnotationSurface] = useState<'source' | 'solution'>('solution')
+  const [contentViewMode, setContentViewMode] = useState<ContentViewMode>('vertical')
   const [selectedTool, setSelectedTool] = useState<AnnotationTool>('pen')
   const [drawingSettings, setDrawingSettings] = useState<AnnotationSettings>(DEFAULT_DRAWING_SETTINGS)
   const analysisAbortRef = useRef<AbortController | null>(null)
@@ -419,6 +420,8 @@ function App() {
               }}
               activeSurface={problemAnnotationSurface}
               onActiveSurfaceChange={(surface) => { ensureDrawingTool(); setProblemAnnotationSurface(surface) }}
+              viewMode={contentViewMode}
+              onViewModeChange={setContentViewMode}
             />
           </section>
         ) : focusedContent && loadedPdf ? (
@@ -444,6 +447,8 @@ function App() {
               }}
               activeSurface={contentAnnotationSurface}
               onActiveSurfaceChange={(surface) => { ensureDrawingTool(); setContentAnnotationSurface(surface) }}
+              viewMode={contentViewMode}
+              onViewModeChange={setContentViewMode}
               onReturnToTextbook={() => setSelectedContentId(null)}
             />
           </section>

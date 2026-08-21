@@ -61,6 +61,7 @@ export function ToolBar({
 
   return (
     <footer className="tool-bar" aria-label="판서 도구 영역">
+      <strong className="toolbar-label">판서도구</strong>
       <div className="annotation-toolbar-controls">
         <div className="toolbar-mode-controls" aria-label="수업 화면 모드">
           <button type="button" className={isWhiteboard ? 'is-active' : undefined} aria-pressed={isWhiteboard} onClick={onToggleWhiteboard}>
@@ -99,13 +100,13 @@ export function ToolBar({
           ))}
         </div>
 
-        <div className="history-controls" aria-label="판서 기록 제어">
-          <button type="button" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="판서 실행 취소">실행 취소</button>
-          <button type="button" disabled={!hasDocument || !canRedo} onClick={onRedo} aria-label="판서 다시 실행">다시 실행</button>
-          <button type="button" className={!isVisible ? 'is-active' : undefined} disabled={!hasDocument} aria-pressed={!isVisible} onClick={onToggleVisibility}>
-            {isVisible ? '판서 숨기기' : '판서 보이기'}
-          </button>
-        </div>
+      </div>
+      <div className="history-controls" aria-label="판서 기록 제어">
+        <button type="button" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="판서 실행 취소">실행 취소</button>
+        <button type="button" disabled={!hasDocument || !canRedo} onClick={onRedo} aria-label="판서 다시 실행">다시 실행</button>
+        <button type="button" className={!isVisible ? 'is-active' : undefined} disabled={!hasDocument} aria-pressed={!isVisible} onClick={onToggleVisibility}>
+          {isVisible ? '판서 숨기기' : '판서 보이기'}
+        </button>
       </div>
     </footer>
   )
