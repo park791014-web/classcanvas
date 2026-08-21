@@ -3,7 +3,7 @@ import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
 import { CONTENT_TYPE_LABELS } from '../../types/content'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
-import type { CropContentBlock } from '../../types/content'
+import type { FocusContentBlock } from '../../types/content'
 import type { LoadedPdfDocument, PdfViewportMetrics } from '../../types/pdf'
 import { ContentCropCanvas } from './ProblemCropCanvas'
 
@@ -18,7 +18,7 @@ export interface ContentAnnotationSurface {
 
 interface ContentFocusViewProps {
   loadedPdf: LoadedPdfDocument
-  block: CropContentBlock
+  block: FocusContentBlock
   sourceAnnotations: ContentAnnotationSurface
   notesAnnotations: ContentAnnotationSurface
   activeSurface: 'source' | 'notes'

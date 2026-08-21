@@ -1,11 +1,30 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { migrateLegacyContentType } from '../types/content'
 import type { AnalysisCandidate } from '../types/analysis'
+import type { ContentType, LegacyContentType } from '../types/content'
 
 const EMPTY_CANDIDATES: AnalysisCandidate[] = []
+type LegacyCompatibleAnalysisCandidate = Omit<AnalysisCandidate, 'type'> & {
+  type: ContentType | LegacyContentType
+}
+
+function migrateCandidate(candidate: LegacyCompatibleAnalysisCandidate): AnalysisCandidate {
+  const type = migrateLegacyContentType(candidate.type)
+  return type === candidate.type ? candidate as AnalysisCandidate : { ...candidate, type }
+}
 
 export function useAnalysisCandidates(documentId: string | null) {
-  const [store, setStore] = useState<Record<string, AnalysisCandidate[]>>({})
-  const candidates = documentId ? store[documentId] ?? EMPTY_CANDIDATES : EMPTY_CANDIDATES
+  const [store, setStore] = useState<Record<string, LegacyCompatibleAnalysisCandidate[]>>({})
+  const storedCandidates = documentId ? store[documentId] : undefined
+  const candidates = useMemo(() => storedCandidates?.map(migrateCandidate) ?? EMPTY_CANDIDATES, [storedCandidates])
+
+  useEffect(() => {
+    if (!documentId || !storedCandidates?.some((candidate) => migrateCandidate(candidate) !== candidate)) return
+    setStore((current) => ({
+      ...current,
+      [documentId]: (current[documentId] ?? []).map(migrateCandidate),
+    }))
+  }, [documentId, storedCandidates])
 
   const addCandidates = useCallback((newCandidates: AnalysisCandidate[]) => {
     if (!documentId || newCandidates.length === 0) return

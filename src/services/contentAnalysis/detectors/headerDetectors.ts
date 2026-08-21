@@ -1,8 +1,8 @@
-import type { ContentType } from '../../../types/content'
+import type { LegacyContentType } from '../../../types/content'
 import type { TextLayoutLine } from '../textLayout'
 import type { DetectionStart } from './shared'
 
-const PATTERNS: Array<{ type: ContentType; pattern: RegExp; confidence: number }> = [
+const PATTERNS: Array<{ type: LegacyContentType; pattern: RegExp; confidence: number }> = [
   { type: 'example', pattern: /^(?:예제|example|보기)(?:\s*\d{1,2})?(?=\s|[.:)]|$)/i, confidence: 0.93 },
   { type: 'concept', pattern: /^(?:개념|정의|성질|정리|공식|핵심|알아두기)(?:\s|\d|$)/i, confidence: 0.84 },
   { type: 'thinking', pattern: /^(?:생각\s*(?:열기|해\s*보기)|생각하기)(?:\s|$)/i, confidence: 0.86 },

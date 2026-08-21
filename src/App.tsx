@@ -13,7 +13,7 @@ import { useAnalysisCandidates } from './hooks/useAnalysisCandidates'
 import { useContentBlocks } from './hooks/useContentBlocks'
 import { usePdfDocument, validatePdfFile } from './hooks/usePdfDocument'
 import { INITIAL_PROBLEM_WORKSPACE_HEIGHT, useProblemWorkspaces } from './hooks/useProblemWorkspaces'
-import { isCropContentBlock, isProblemContentBlock } from './types/content'
+import { isFocusContentBlock, isProblemContentBlock } from './types/content'
 import type { ContentBlock, ContentType, SourceRegion } from './types/content'
 import type { AnalysisCandidate, AnalysisProgress, AnalysisScope } from './types/analysis'
 import type { AnnotationSettings, AnnotationTool, DrawingStyle, DrawingTool } from './types/annotation'
@@ -63,21 +63,21 @@ function App() {
     [activeCandidateId, analysisCandidates.candidates],
   )
   const focusedProblem = selectedContent && isProblemContentBlock(selectedContent) ? selectedContent : null
-  const focusedCrop = selectedContent && isCropContentBlock(selectedContent) ? selectedContent : null
-  const originalPageSelection = selectedContent && !focusedProblem && !focusedCrop ? selectedContent : null
+  const focusedContent = selectedContent && isFocusContentBlock(selectedContent) ? selectedContent : null
+  const originalPageSelection = selectedContent && !focusedProblem && !focusedContent ? selectedContent : null
   const problemAnnotationDocumentId = loadedPdf && focusedProblem
     ? `problem:${loadedPdf.documentId}:${focusedProblem.id}`
     : null
   const problemAnnotations = useAnnotations(problemAnnotationDocumentId, 1)
   const problemSourceAnnotations = useAnnotations(loadedPdf && focusedProblem ? `content:${loadedPdf.documentId}:${focusedProblem.id}` : null, 1)
   const whiteboardAnnotations = useAnnotations('whiteboard:session', 1)
-  const contentSourceAnnotations = useAnnotations(loadedPdf && focusedCrop ? `content:${loadedPdf.documentId}:${focusedCrop.id}` : null, 1)
-  const contentNotesAnnotations = useAnnotations(loadedPdf && focusedCrop ? `content-notes:${loadedPdf.documentId}:${focusedCrop.id}` : null, 1)
+  const contentSourceAnnotations = useAnnotations(loadedPdf && focusedContent ? `content:${loadedPdf.documentId}:${focusedContent.id}` : null, 1)
+  const contentNotesAnnotations = useAnnotations(loadedPdf && focusedContent ? `content-notes:${loadedPdf.documentId}:${focusedContent.id}` : null, 1)
   const problemWorkspace = useProblemWorkspaces(problemAnnotationDocumentId)
   const activeAnnotations = workspaceMode === 'whiteboard'
     ? whiteboardAnnotations
     : focusedProblem ? (problemAnnotationSurface === 'source' ? problemSourceAnnotations : problemAnnotations)
-      : focusedCrop ? (contentAnnotationSurface === 'source' ? contentSourceAnnotations : contentNotesAnnotations)
+      : focusedContent ? (contentAnnotationSurface === 'source' ? contentSourceAnnotations : contentNotesAnnotations)
         : pageAnnotations
 
   useEffect(() => {
@@ -85,7 +85,7 @@ function App() {
     problemAnnotations.migrateCurrentToLogicalY(INITIAL_PROBLEM_WORKSPACE_HEIGHT)
   }, [problemAnnotationDocumentId, problemAnnotations.migrateCurrentToLogicalY])
 
-  useEffect(() => setContentAnnotationSurface('source'), [focusedCrop?.id])
+  useEffect(() => setContentAnnotationSurface('source'), [focusedContent?.id])
   useEffect(() => setProblemAnnotationSurface('solution'), [focusedProblem?.id])
 
   useEffect(() => {
@@ -165,16 +165,16 @@ function App() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
         event.preventDefault(); activeAnnotations.redo(); return
       }
-      if (!focusedProblem && !focusedCrop && (event.key === 'ArrowLeft' || event.key === 'PageUp')) {
+      if (!focusedProblem && !focusedContent && (event.key === 'ArrowLeft' || event.key === 'PageUp')) {
         event.preventDefault(); movePage(-1)
       }
-      if (!focusedProblem && !focusedCrop && (event.key === 'ArrowRight' || event.key === 'PageDown')) {
+      if (!focusedProblem && !focusedContent && (event.key === 'ArrowRight' || event.key === 'PageDown')) {
         event.preventDefault(); movePage(1)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeAnnotations, focusedCrop, focusedProblem, movePage])
+  }, [activeAnnotations, focusedContent, focusedProblem, movePage])
 
   const activeState = loadedPdf ? documentState : null
   const visibleError = selectionError ?? error
@@ -421,11 +421,11 @@ function App() {
               onActiveSurfaceChange={(surface) => { ensureDrawingTool(); setProblemAnnotationSurface(surface) }}
             />
           </section>
-        ) : focusedCrop && loadedPdf ? (
+        ) : focusedContent && loadedPdf ? (
           <section className="lesson-workspace" aria-label="콘텐츠 집중 보기">
             <ContentFocusView
               loadedPdf={loadedPdf}
-              block={focusedCrop}
+              block={focusedContent}
               sourceAnnotations={{
                 strokes: contentSourceAnnotations.strokes,
                 activeTool: selectedTool,
@@ -513,7 +513,7 @@ function App() {
         onUndo={activeAnnotations.undo}
         onRedo={activeAnnotations.redo}
         onToggleVisibility={activeAnnotations.toggleVisibility}
-        allowRegionSelect={workspaceMode === 'textbook' && !focusedProblem && !focusedCrop}
+        allowRegionSelect={workspaceMode === 'textbook' && !focusedProblem && !focusedContent}
         isWhiteboard={workspaceMode === 'whiteboard'}
         onToggleWhiteboard={toggleWhiteboard}
       />

@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
-import { CONTENT_TYPE_LABELS, CONTENT_TYPE_OPTIONS } from '../types/content'
-import type { ContentBlock, ContentType, SourceRegion } from '../types/content'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CONTENT_TYPE_LABELS, CONTENT_TYPE_OPTIONS, migrateLegacyContentBlock } from '../types/content'
+import type { ContentBlock, ContentType, LegacyCompatibleContentBlock, SourceRegion } from '../types/content'
 
 interface DocumentContentState {
-  blocks: ContentBlock[]
+  blocks: LegacyCompatibleContentBlock[]
   nextNumbers?: Partial<Record<ContentType, number>>
   nextProblemNumber?: number
 }
@@ -31,11 +31,26 @@ function createBlockId() {
 export function useContentBlocks(documentId: string | null) {
   const [store, setStore] = useState<Record<string, DocumentContentState>>({})
   const currentState = documentId ? store[documentId] : undefined
-  const blocks = currentState?.blocks ?? EMPTY_BLOCKS
+  const blocks = useMemo(() => currentState?.blocks.map(migrateLegacyContentBlock) ?? EMPTY_BLOCKS, [currentState?.blocks])
   const nextTitles = useMemo(() => Object.fromEntries(CONTENT_TYPE_OPTIONS.map(({ value }) => [
     value,
     `${CONTENT_TYPE_LABELS[value]} ${currentState?.nextNumbers?.[value] ?? (value === 'problem' ? currentState?.nextProblemNumber : undefined) ?? 1}`,
   ])) as Record<ContentType, string>, [currentState])
+
+  useEffect(() => {
+    if (!documentId || !currentState?.blocks.some((block) => migrateLegacyContentBlock(block) !== block)) return
+    setStore((currentStore) => {
+      const documentState = currentStore[documentId]
+      if (!documentState) return currentStore
+      return {
+        ...currentStore,
+        [documentId]: {
+          ...documentState,
+          blocks: documentState.blocks.map(migrateLegacyContentBlock),
+        },
+      }
+    })
+  }, [currentState?.blocks, documentId])
 
   const addBlock = useCallback((input: AddContentBlockInput) => {
     if (!documentId) return null
@@ -84,9 +99,10 @@ export function useContentBlocks(documentId: string | null) {
         ...currentStore,
         [documentId]: {
           ...documentState,
-          blocks: documentState.blocks.map((block) => block.id === blockId
-            ? { ...block, type: input.type, title: input.title.trim() }
-            : block),
+          blocks: documentState.blocks.map((storedBlock) => {
+            const block = migrateLegacyContentBlock(storedBlock)
+            return block.id === blockId ? { ...block, type: input.type, title: input.title.trim() } : block
+          }),
         },
       }
     })

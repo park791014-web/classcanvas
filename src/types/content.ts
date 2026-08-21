@@ -1,4 +1,6 @@
-export type ContentType =
+export type ContentType = 'explanation' | 'problem' | 'material'
+
+export type LegacyContentType =
   | 'concept'
   | 'thinking'
   | 'example'
@@ -8,13 +10,9 @@ export type ContentType =
   | 'visual'
 
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
-  concept: '개념',
-  thinking: '생각열기',
-  example: '예제',
+  explanation: '설명',
   problem: '문제',
-  activity: '활동',
-  visual: '그림·그래프',
-  solution: '해설',
+  material: '자료',
 }
 
 export const CONTENT_TYPE_OPTIONS = (Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((value) => ({
@@ -42,12 +40,37 @@ export interface SourceRegion {
 }
 
 export type ProblemContentBlock = ContentBlock & { type: 'problem' }
-export type CropContentBlock = ContentBlock & { type: 'example' | 'visual' | 'solution' }
+export type FocusContentBlock = ContentBlock & { type: 'explanation' | 'material' }
+export type LegacyCompatibleContentBlock = Omit<ContentBlock, 'type'> & {
+  type: ContentType | LegacyContentType
+}
+
+export function migrateLegacyContentType(type: ContentType | LegacyContentType): ContentType {
+  switch (type) {
+    case 'concept':
+    case 'thinking':
+    case 'activity':
+      return 'explanation'
+    case 'example':
+    case 'problem':
+      return 'problem'
+    case 'visual':
+    case 'solution':
+      return 'material'
+    default:
+      return type
+  }
+}
+
+export function migrateLegacyContentBlock(block: LegacyCompatibleContentBlock): ContentBlock {
+  const type = migrateLegacyContentType(block.type)
+  return type === block.type ? block as ContentBlock : { ...block, type }
+}
 
 export function isProblemContentBlock(block: ContentBlock): block is ProblemContentBlock {
   return block.type === 'problem'
 }
 
-export function isCropContentBlock(block: ContentBlock): block is CropContentBlock {
-  return block.type === 'example' || block.type === 'visual' || block.type === 'solution'
+export function isFocusContentBlock(block: ContentBlock): block is FocusContentBlock {
+  return block.type === 'explanation' || block.type === 'material'
 }

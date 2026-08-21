@@ -1,6 +1,7 @@
 import type { PDFPageProxy } from 'pdfjs-dist'
 import type { AnalysisCandidate } from '../../types/analysis'
-import type { ContentBlock, ContentType, SourceRegion } from '../../types/content'
+import { migrateLegacyContentType } from '../../types/content'
+import type { ContentBlock, LegacyContentType, SourceRegion } from '../../types/content'
 import { detectHeaders } from './detectors/headerDetectors'
 import { detectProblems } from './detectors/problemDetector'
 import type { DetectionStart } from './detectors/shared'
@@ -37,7 +38,7 @@ function inferRegion(start: DetectionStart, next: DetectionStart | undefined): S
 }
 
 function assignTitles(starts: DetectionStart[]) {
-  const counters = new Map<ContentType, number>()
+  const counters = new Map<LegacyContentType, number>()
   return starts.map((start) => {
     const next = (counters.get(start.type) ?? 0) + 1
     counters.set(start.type, next)
@@ -51,38 +52,41 @@ export async function analyzePage(page: PDFPageProxy, options: AnalyzePageOption
   const starts = assignTitles([...detectProblems(lines), ...detectHeaders(lines)]
     .sort((a, b) => a.line.y - b.line.y || a.line.x - b.line.x))
 
-  const candidates = starts.map((start, index): AnalysisCandidate => ({
-    id: createCandidateId(),
-    type: start.type,
-    suggestedTitle: start.title,
-    sourceDocumentId: options.documentId,
-    sourceFileName: options.fileName,
-    sourcePage: options.pageNumber,
-    sourceRegion: inferRegion(start, starts[index + 1]),
-    ruleConfidence: start.confidence,
-    status: 'pending',
-    detectionSource: start.detectionSource,
-    analysisVersion: ANALYSIS_VERSION,
-  }))
+  const candidates = starts.map((start, index) => {
+    const candidate: AnalysisCandidate = {
+      id: createCandidateId(),
+      type: migrateLegacyContentType(start.type),
+      suggestedTitle: start.title,
+      sourceDocumentId: options.documentId,
+      sourceFileName: options.fileName,
+      sourcePage: options.pageNumber,
+      sourceRegion: inferRegion(start, starts[index + 1]),
+      ruleConfidence: start.confidence,
+      status: 'pending' as const,
+      detectionSource: start.detectionSource,
+      analysisVersion: ANALYSIS_VERSION,
+    }
+    return { detectedType: start.type, candidate }
+  })
 
-  const withoutExistingBlocks = candidates.filter((candidate) => !options.existingBlocks.some((block) => (
+  const withoutExistingBlocks = candidates.filter(({ candidate }) => !options.existingBlocks.some((block) => (
     block.sourcePage === candidate.sourcePage && intersectionOverUnion(block.sourceRegion, candidate.sourceRegion) >= EXISTING_BLOCK_IOU
   )))
-  const withoutStoredCandidates = withoutExistingBlocks.filter((candidate) => !options.existingCandidates.some((existing) => (
+  const withoutStoredCandidates = withoutExistingBlocks.filter(({ candidate }) => !options.existingCandidates.some((existing) => (
     existing.sourcePage === candidate.sourcePage
     && existing.type === candidate.type
     && intersectionOverUnion(existing.sourceRegion, candidate.sourceRegion) >= CANDIDATE_IOU
   )))
-  const deduplicated = withoutStoredCandidates.filter((candidate, index, all) => !all.slice(0, index).some((existing) => (
+  const deduplicated = withoutStoredCandidates.filter(({ candidate }, index, all) => !all.slice(0, index).some(({ candidate: existing }) => (
     existing.type === candidate.type && intersectionOverUnion(existing.sourceRegion, candidate.sourceRegion) >= CANDIDATE_IOU
   )))
 
-  const problems = deduplicated.filter((candidate) => candidate.type === 'problem')
-  const solutions = deduplicated.filter((candidate) => candidate.type === 'solution')
+  const problems = deduplicated.filter(({ detectedType }) => detectedType === 'problem')
+  const solutions = deduplicated.filter(({ detectedType }) => detectedType === 'solution')
   for (const solution of solutions) {
-    const relatedProblem = [...problems].reverse().find((problem) => problem.sourceRegion.y < solution.sourceRegion.y)
-    if (relatedProblem) solution.relatedCandidateId = relatedProblem.id
+    const relatedProblem = [...problems].reverse().find(({ candidate }) => candidate.sourceRegion.y < solution.candidate.sourceRegion.y)
+    if (relatedProblem) solution.candidate.relatedCandidateId = relatedProblem.candidate.id
   }
 
-  return { candidates: deduplicated, textItemCount }
+  return { candidates: deduplicated.map(({ candidate }) => candidate), textItemCount }
 }
