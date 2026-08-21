@@ -19,8 +19,9 @@ interface AnnotationCanvasProps {
   onAddStroke: (stroke: AnnotationStroke) => void
   onEraseStrokes: (strokeIds: string[]) => void
   ariaLabel?: string
-  coordinateScope?: 'pdf-page' | 'problem-workspace'
+  coordinateScope?: 'pdf-page' | 'problem-workspace' | 'content-workspace'
   coordinateMode?: AnnotationCoordinateMode
+  strokeWidthReference?: number
 }
 
 const WIDTHS: Record<DrawingTool, Record<StrokeWidthPreset, number>> = {
@@ -57,6 +58,7 @@ function drawStroke(
   stroke: AnnotationStroke,
   width: number,
   height: number,
+  widthReference: number,
 ) {
   if (stroke.points.length === 0) return
 
@@ -68,7 +70,7 @@ function drawStroke(
   context.strokeStyle = stroke.color
   context.fillStyle = stroke.color
   context.globalAlpha = stroke.opacity
-  context.lineWidth = Math.max(1, stroke.normalizedWidth * Math.min(width, height))
+  context.lineWidth = Math.max(1, stroke.normalizedWidth * widthReference)
   context.lineCap = 'round'
   context.lineJoin = 'round'
 
@@ -101,10 +103,11 @@ function strokeIsHit(
   pointMode: AnnotationCoordinateMode,
   width: number,
   height: number,
+  widthReference: number,
 ) {
   const pointX = point.x * width
   const pointY = pointMode === 'problem-logical-y' ? point.y : point.y * height
-  const strokeRadius = stroke.normalizedWidth * Math.min(width, height) / 2
+  const strokeRadius = stroke.normalizedWidth * widthReference / 2
   const hitRadius = ERASER_RADIUS + strokeRadius
 
   if (stroke.points.length === 1) {
@@ -145,6 +148,7 @@ export function AnnotationCanvas({
   ariaLabel = 'PDF 판서 영역',
   coordinateScope = 'pdf-page',
   coordinateMode = 'normalized',
+  strokeWidthReference,
 }: AnnotationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const activePointerRef = useRef<number | null>(null)
@@ -153,6 +157,7 @@ export function AnnotationCanvas({
   const strokesRef = useRef(strokes)
 
   strokesRef.current = strokes
+  const effectiveWidthReference = strokeWidthReference ?? Math.min(metrics.width, metrics.height)
 
   const getContext = useCallback(() => {
     const canvas = canvasRef.current
@@ -170,9 +175,9 @@ export function AnnotationCanvas({
     if (!isVisible) return
 
     strokesRef.current.forEach((stroke) => {
-      if (!excludedIds.has(stroke.id)) drawStroke(context, stroke, metrics.width, metrics.height)
+      if (!excludedIds.has(stroke.id)) drawStroke(context, stroke, metrics.width, metrics.height, effectiveWidthReference)
     })
-  }, [getContext, isVisible, metrics.height, metrics.width])
+  }, [effectiveWidthReference, getContext, isVisible, metrics.height, metrics.width])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -195,29 +200,29 @@ export function AnnotationCanvas({
     return {
       x: clamp((event.clientX - bounds.left) / bounds.width),
       y: coordinateMode === 'problem-logical-y'
-        ? Math.min(bounds.height, Math.max(0, event.clientY - bounds.top))
+        ? Math.min(metrics.height, Math.max(0, ((event.clientY - bounds.top) / bounds.height) * metrics.height))
         : clamp((event.clientY - bounds.top) / bounds.height),
       pressure: event.pressure > 0 ? event.pressure : 0.5,
     }
-  }, [coordinateMode])
+  }, [coordinateMode, metrics.height])
 
   const previewLatestSegment = useCallback((stroke: AnnotationStroke) => {
     const context = getContext()
     if (!context) return
     const recentPoints = stroke.points.slice(-2)
-    drawStroke(context, { ...stroke, points: recentPoints }, metrics.width, metrics.height)
-  }, [getContext, metrics.height, metrics.width])
+    drawStroke(context, { ...stroke, points: recentPoints }, metrics.width, metrics.height, effectiveWidthReference)
+  }, [effectiveWidthReference, getContext, metrics.height, metrics.width])
 
   const eraseAt = useCallback((point: AnnotationPoint) => {
     let changed = false
     strokesRef.current.forEach((stroke) => {
-      if (!erasedIdsRef.current.has(stroke.id) && strokeIsHit(stroke, point, coordinateMode, metrics.width, metrics.height)) {
+      if (!erasedIdsRef.current.has(stroke.id) && strokeIsHit(stroke, point, coordinateMode, metrics.width, metrics.height, effectiveWidthReference)) {
         erasedIdsRef.current.add(stroke.id)
         changed = true
       }
     })
     if (changed) redraw(erasedIdsRef.current)
-  }, [coordinateMode, metrics.height, metrics.width, redraw])
+  }, [coordinateMode, effectiveWidthReference, metrics.height, metrics.width, redraw])
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isVisible || (activeTool !== 'pen' && activeTool !== 'highlighter' && activeTool !== 'eraser') || event.button !== 0) return

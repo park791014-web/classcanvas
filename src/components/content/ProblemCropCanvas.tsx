@@ -10,7 +10,7 @@ export interface ContentCropCanvasProps {
   availableWidth: number
   availableHeight?: number
   title: string
-  fitMode?: 'width' | 'adaptive'
+  fitMode?: 'width' | 'adaptive' | 'contain'
   onMetricsChange?: (metrics: PdfViewportMetrics) => void
 }
 
@@ -58,10 +58,12 @@ export function ContentCropCanvas({
         const baseViewport = page.getViewport({ scale: 1 })
         const sourceWidth = baseViewport.width * region.width
         const sourceHeight = baseViewport.height * region.height
-        const requestedScale = fitMode === 'adaptive'
-          ? getAdaptiveScale(sourceWidth, sourceHeight, availableWidth, availableHeight)
-          : availableWidth / Math.max(1, sourceWidth)
-        const scale = Math.min(MAX_RENDER_SCALE, Math.max(0.5, requestedScale))
+        const requestedScale = fitMode === 'contain'
+          ? Math.min(availableWidth / Math.max(1, sourceWidth), availableHeight / Math.max(1, sourceHeight))
+          : fitMode === 'adaptive'
+            ? getAdaptiveScale(sourceWidth, sourceHeight, availableWidth, availableHeight)
+            : availableWidth / Math.max(1, sourceWidth)
+        const scale = Math.min(MAX_RENDER_SCALE, Math.max(fitMode === 'contain' ? 0.05 : 0.5, requestedScale))
         const viewport = page.getViewport({ scale })
         const cropX = viewport.width * region.x
         const cropY = viewport.height * region.y
@@ -107,7 +109,7 @@ export function ContentCropCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className={`problem-crop-canvas${fitMode === 'adaptive' ? ' problem-crop-canvas--adaptive' : ''}`}
+      className={`problem-crop-canvas${fitMode !== 'width' ? ' problem-crop-canvas--adaptive' : ''}`}
       aria-label={`${title} 원본 콘텐츠`}
       data-source-page={pageNumber}
       data-region={`${region.x},${region.y},${region.width},${region.height}`}

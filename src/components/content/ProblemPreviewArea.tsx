@@ -1,39 +1,22 @@
-import { useState } from 'react'
-import { ProblemCropCanvas } from './ProblemCropCanvas'
-import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
+import { ContentSourcePane } from './ContentSourcePane'
 import type { ContentAnnotationSurface } from './ContentFocusView'
-import type { PdfViewportMetrics } from '../../types/pdf'
 import type { ProblemContentBlock } from '../../types/content'
 import type { LoadedPdfDocument } from '../../types/pdf'
 
 interface ProblemPreviewAreaProps {
   loadedPdf: LoadedPdfDocument
   problem: ProblemContentBlock
-  maxHeight: number
+  orientation: 'vertical' | 'horizontal'
   annotation: ContentAnnotationSurface
   active: boolean
   onActivate: () => void
 }
 
-const PREVIEW_READABLE_WIDTH = 780
-
-export function ProblemPreviewArea({ loadedPdf, problem, maxHeight, annotation, active, onActivate }: ProblemPreviewAreaProps) {
-  const [metrics, setMetrics] = useState<PdfViewportMetrics | null>(null)
-
+export function ProblemPreviewArea({ loadedPdf, problem, orientation, annotation, active, onActivate }: ProblemPreviewAreaProps) {
   return (
-    <section className={`problem-source-card${active ? ' is-active' : ''}`} aria-label={`${problem.title} 미리보기`} onPointerDownCapture={onActivate}>
-      <div
-        className="problem-preview-scroll"
-        style={{ maxHeight }}
-        data-preview-max-height={maxHeight}
-      >
-        <div className="content-crop-stage" style={metrics ? { width: metrics.width, height: metrics.height } : undefined}>
-          <ProblemCropCanvas document={loadedPdf.document} pageNumber={problem.sourcePage} region={problem.sourceRegion}
-            availableWidth={PREVIEW_READABLE_WIDTH} title={problem.title} onMetricsChange={setMetrics} />
-          {metrics && <AnnotationCanvas metrics={metrics} strokes={annotation.strokes} activeTool={active ? annotation.activeTool : 'none'} settings={annotation.settings}
-            isVisible={annotation.isVisible} onAddStroke={annotation.onAddStroke} onEraseStrokes={annotation.onEraseStrokes} ariaLabel={`${problem.title} 원문 판서 영역`} />}
-        </div>
-      </div>
+    <section className="problem-source-card" aria-label={`${problem.title} 미리보기`}>
+      <ContentSourcePane loadedPdf={loadedPdf} block={problem} orientation={orientation} annotation={annotation}
+        active={active} onActivate={onActivate} />
     </section>
   )
 }

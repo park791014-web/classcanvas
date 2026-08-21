@@ -14,8 +14,7 @@ export function useElementSize<T extends HTMLElement>(element: T | null) {
     }
 
     const updateSize = () => {
-      const { width, height } = element.getBoundingClientRect()
-      setSize({ width, height })
+      setSize({ width: element.clientWidth, height: element.clientHeight })
     }
 
     updateSize()

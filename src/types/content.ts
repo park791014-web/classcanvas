@@ -7,6 +7,14 @@ export const CONTENT_VIEW_MODE_LABELS: Record<ContentViewMode, string> = {
   horizontal: '좌우',
 }
 
+export interface ContentWorkspaceState {
+  canvasScale: number
+  canvasOffsetX: number
+  canvasOffsetY: number
+  verticalRatio: number
+  horizontalRatio: number
+}
+
 export type LegacyContentType =
   | 'concept'
   | 'thinking'

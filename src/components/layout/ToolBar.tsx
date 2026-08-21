@@ -59,25 +59,36 @@ export function ToolBar({
   const drawingTool = activeTool === 'pen' || activeTool === 'highlighter' ? activeTool : null
   const drawingStyle = drawingTool ? settings[drawingTool] : null
 
+  const renderModeControls = (position: '왼쪽' | '오른쪽') => (
+    <div className="toolbar-mode-controls" aria-label={`${position} 수업 화면 모드`}>
+      {(position === '왼쪽' ? ['board', 'region'] : ['region', 'board']).map((control) => control === 'board' ? (
+        <button key="board" type="button" className={isWhiteboard ? 'is-active' : undefined} aria-pressed={isWhiteboard}
+          onClick={onToggleWhiteboard}>{isWhiteboard ? '교과서' : '빈 칠판'}</button>
+      ) : (
+        <button key="region" type="button" className={activeTool === 'region-select' ? 'is-active' : undefined}
+          aria-pressed={activeTool === 'region-select'} disabled={!hasDocument || !allowRegionSelect}
+          onClick={() => onToolChange('region-select')}>영역 선택</button>
+      ))}
+    </div>
+  )
+
+  const renderDrawingTools = (position: '왼쪽' | '오른쪽') => (
+    <div className="tool-button-group" aria-label={`${position} 빠른 탐색 및 판서 도구`}>
+      <button type="button" className={activeTool === 'none' ? 'is-active' : undefined} aria-pressed={activeTool === 'none'}
+        disabled={!hasDocument} onClick={() => onToolChange('none')}>탐색</button>
+      {DRAWING_TOOLS.map(({ tool, label }) => (
+        <button type="button" key={tool} className={activeTool === tool ? 'is-active' : undefined} aria-pressed={activeTool === tool}
+          disabled={!hasDocument || !isVisible} onClick={() => onToolChange(tool)}>{label}</button>
+      ))}
+    </div>
+  )
+
   return (
     <footer className="tool-bar" aria-label="판서 도구 영역">
       <strong className="toolbar-label">판서도구</strong>
       <div className="annotation-toolbar-controls">
-        <div className="toolbar-mode-controls" aria-label="수업 화면 모드">
-          <button type="button" className={isWhiteboard ? 'is-active' : undefined} aria-pressed={isWhiteboard} onClick={onToggleWhiteboard}>
-            {isWhiteboard ? '교과서' : '빈 칠판'}
-          </button>
-          <button type="button" className={activeTool === 'none' ? 'is-active' : undefined} aria-pressed={activeTool === 'none'} disabled={!hasDocument} onClick={() => onToolChange('none')}>탐색</button>
-          <button type="button" className={activeTool === 'region-select' ? 'is-active' : undefined} aria-pressed={activeTool === 'region-select'}
-            disabled={!hasDocument || !allowRegionSelect} onClick={() => onToolChange('region-select')}>영역 선택</button>
-        </div>
-
-        <div className="tool-button-group" aria-label="판서 도구 선택">
-          {DRAWING_TOOLS.map(({ tool, label }) => (
-            <button type="button" key={tool} className={activeTool === tool ? 'is-active' : undefined} aria-pressed={activeTool === tool}
-              disabled={!hasDocument || !isVisible} onClick={() => onToolChange(tool)}>{label}</button>
-          ))}
-        </div>
+        {renderModeControls('왼쪽')}
+        {renderDrawingTools('왼쪽')}
 
         <div className="color-controls" aria-label="선 색상">
           {COLORS.map((color) => (
@@ -100,6 +111,8 @@ export function ToolBar({
           ))}
         </div>
 
+        {renderDrawingTools('오른쪽')}
+        {renderModeControls('오른쪽')}
       </div>
       <div className="history-controls" aria-label="판서 기록 제어">
         <button type="button" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="판서 실행 취소">실행 취소</button>

@@ -1,10 +1,12 @@
-import { useState } from 'react'
-import { useElementSize } from '../../hooks/useElementSize'
 import { ProblemPreviewArea } from './ProblemPreviewArea'
 import { ProblemWorkspace } from './ProblemWorkspace'
 import { ContentViewModeSelector } from './ContentViewModeSelector'
+import { CanvasContentWorkspace } from './CanvasContentWorkspace'
+import { ResizableSplit } from './ResizableSplit'
+import { HorizontalWritingWorkspace } from './HorizontalWritingWorkspace'
+import { ContentCanvasZoomControls } from './ContentCanvasZoomControls'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
-import type { ContentViewMode, ProblemContentBlock } from '../../types/content'
+import type { ContentViewMode, ContentWorkspaceState, ProblemContentBlock } from '../../types/content'
 import type { LoadedPdfDocument } from '../../types/pdf'
 import type { ContentAnnotationSurface } from './ContentFocusView'
 
@@ -26,6 +28,8 @@ interface ProblemFocusViewProps {
   onActiveSurfaceChange: (surface: 'source' | 'solution') => void
   viewMode: ContentViewMode
   onViewModeChange: (mode: ContentViewMode) => void
+  workspaceState: ContentWorkspaceState
+  onWorkspaceStateChange: (changes: Partial<ContentWorkspaceState>) => void
 }
 
 export function ProblemFocusView({
@@ -46,12 +50,17 @@ export function ProblemFocusView({
   onActiveSurfaceChange,
   viewMode,
   onViewModeChange,
+  workspaceState,
+  onWorkspaceStateChange,
 }: ProblemFocusViewProps) {
-  const [bodyElement, setBodyElement] = useState<HTMLDivElement | null>(null)
-  const bodySize = useElementSize(bodyElement)
-  const previewMaxHeight = viewMode === 'horizontal'
-    ? Math.max(120, bodySize.height)
-    : Math.max(120, Math.floor(bodySize.height * (viewMode === 'canvas' ? 0.45 : 0.35)))
+  const workspaceAnnotations: ContentAnnotationSurface = {
+    strokes: annotationStrokes,
+    activeTool: annotationTool,
+    settings: annotationSettings,
+    isVisible: annotationsVisible,
+    onAddStroke,
+    onEraseStrokes,
+  }
 
   return (
     <div className="problem-focus-view">
@@ -61,29 +70,67 @@ export function ProblemFocusView({
           <span>교과서 p.{problem.sourcePage}</span>
           <strong>{problem.title}</strong>
         </div>
-        <ContentViewModeSelector value={viewMode} onChange={onViewModeChange} />
+        <div className="content-view-controls" aria-label="문제 보기 설정">
+          <ContentViewModeSelector value={viewMode} onChange={onViewModeChange} />
+          {viewMode === 'canvas' && <ContentCanvasZoomControls state={workspaceState} onStateChange={onWorkspaceStateChange} />}
+        </div>
       </header>
 
-      <div className={`problem-focus-body problem-focus-body--${viewMode}`} ref={setBodyElement}>
-        <ProblemPreviewArea loadedPdf={loadedPdf} problem={problem} maxHeight={previewMaxHeight} annotation={sourceAnnotations}
-          active={activeSurface === 'source'} onActivate={() => onActiveSurfaceChange('source')} />
-        <div className="problem-solution-scroll">
-          <ProblemWorkspace
-            title={problem.title}
-            workspaceHeight={workspaceHeight}
-            canExpandWorkspace={canExpandWorkspace}
-            annotationStrokes={annotationStrokes}
-            annotationTool={annotationTool}
-            annotationSettings={annotationSettings}
-            annotationsVisible={annotationsVisible}
-            onAddStroke={onAddStroke}
-            onEraseStrokes={onEraseStrokes}
-            onExpandWorkspace={onExpandWorkspace}
-            active={activeSurface === 'solution'}
-            onActivate={() => onActiveSurfaceChange('solution')}
+      {viewMode === 'canvas' ? (
+        <CanvasContentWorkspace
+          loadedPdf={loadedPdf}
+          block={problem}
+          sourceAnnotations={sourceAnnotations}
+          workspaceAnnotations={workspaceAnnotations}
+          workspaceHeight={workspaceHeight}
+          workspaceCoordinateMode="problem-logical-y"
+          state={workspaceState}
+          onStateChange={onWorkspaceStateChange}
+          onWorkspaceActivate={() => onActiveSurfaceChange('solution')}
+        />
+      ) : (
+        <div className="problem-focus-body">
+          <ResizableSplit
+            orientation={viewMode}
+            ratio={viewMode === 'vertical' ? workspaceState.verticalRatio : workspaceState.horizontalRatio}
+            onRatioChange={(ratio) => onWorkspaceStateChange(viewMode === 'vertical' ? { verticalRatio: ratio } : { horizontalRatio: ratio })}
+            label={viewMode === 'vertical' ? '상하 영역 크기 조절' : '좌우 영역 크기 조절'}
+            source={(
+              <ProblemPreviewArea loadedPdf={loadedPdf} problem={problem} orientation={viewMode} annotation={sourceAnnotations}
+                active={activeSurface === 'source'} onActivate={() => onActiveSurfaceChange('source')} />
+            )}
+            writing={viewMode === 'horizontal' ? (
+              <HorizontalWritingWorkspace
+                title={problem.title}
+                annotation={workspaceAnnotations}
+                coordinateMode="problem-logical-y"
+                workspaceHeight={workspaceHeight}
+                active={activeSurface === 'solution'}
+                onActivate={() => onActiveSurfaceChange('solution')}
+                canExpand={canExpandWorkspace}
+                onExpand={onExpandWorkspace}
+              />
+            ) : (
+              <div className="problem-solution-scroll">
+                <ProblemWorkspace
+                  title={problem.title}
+                  workspaceHeight={workspaceHeight}
+                  canExpandWorkspace={canExpandWorkspace}
+                  annotationStrokes={annotationStrokes}
+                  annotationTool={annotationTool}
+                  annotationSettings={annotationSettings}
+                  annotationsVisible={annotationsVisible}
+                  onAddStroke={onAddStroke}
+                  onEraseStrokes={onEraseStrokes}
+                  onExpandWorkspace={onExpandWorkspace}
+                  active={activeSurface === 'solution'}
+                  onActivate={() => onActiveSurfaceChange('solution')}
+                />
+              </div>
+            )}
           />
         </div>
-      </div>
+      )}
     </div>
   )
 }

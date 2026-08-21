@@ -1,12 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
+import { CLASSROOM_STROKE_WIDTH_REFERENCE } from '../annotation/annotationSizing'
 import { CONTENT_TYPE_LABELS } from '../../types/content'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
-import type { ContentViewMode, FocusContentBlock } from '../../types/content'
+import type { ContentViewMode, ContentWorkspaceState, FocusContentBlock } from '../../types/content'
 import type { LoadedPdfDocument, PdfViewportMetrics } from '../../types/pdf'
 import { ContentViewModeSelector } from './ContentViewModeSelector'
-import { ContentCropCanvas } from './ProblemCropCanvas'
+import { CanvasContentWorkspace } from './CanvasContentWorkspace'
+import { ContentSourcePane } from './ContentSourcePane'
+import { ResizableSplit } from './ResizableSplit'
+import { HorizontalWritingWorkspace } from './HorizontalWritingWorkspace'
+import { ContentCanvasZoomControls } from './ContentCanvasZoomControls'
 
 export interface ContentAnnotationSurface {
   strokes: AnnotationStroke[]
@@ -27,9 +32,11 @@ interface ContentFocusViewProps {
   onReturnToTextbook: () => void
   viewMode: ContentViewMode
   onViewModeChange: (mode: ContentViewMode) => void
+  workspaceState: ContentWorkspaceState
+  onWorkspaceStateChange: (changes: Partial<ContentWorkspaceState>) => void
 }
 
-type ContentFitMode = 'all' | 'readable'
+const CONTENT_NOTES_LOGICAL_HEIGHT = 3000
 
 function NotesSurface({ annotation, active, title, onActivate }: {
   annotation: ContentAnnotationSurface
@@ -39,27 +46,27 @@ function NotesSurface({ annotation, active, title, onActivate }: {
 }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   const size = useElementSize(element)
-  const [logicalSize, setLogicalSize] = useState<{ width: number; height: number } | null>(null)
+  const [logicalWidth, setLogicalWidth] = useState<number | null>(null)
   useEffect(() => {
-    if (logicalSize || size.width <= 0 || size.height <= 0) return
-    setLogicalSize({ width: size.width, height: size.height })
-  }, [logicalSize, size.height, size.width])
+    if (logicalWidth || size.width <= 0) return
+    setLogicalWidth(size.width)
+  }, [logicalWidth, size.width])
   const metrics = useMemo<PdfViewportMetrics>(() => ({
     pageNumber: 1, scale: 1,
-    width: Math.max(1, logicalSize?.width ?? 1), height: Math.max(1, logicalSize?.height ?? 1),
-    baseWidth: Math.max(1, logicalSize?.width ?? 1), baseHeight: Math.max(1, logicalSize?.height ?? 1),
-    outputScale: Math.min(window.devicePixelRatio || 1, 1.5),
-  }), [logicalSize])
+    width: Math.max(1, logicalWidth ?? 1), height: CONTENT_NOTES_LOGICAL_HEIGHT,
+    baseWidth: Math.max(1, logicalWidth ?? 1), baseHeight: CONTENT_NOTES_LOGICAL_HEIGHT,
+    outputScale: Math.min(window.devicePixelRatio || 1, 1.25),
+  }), [logicalWidth])
 
   return (
     <section className={`content-notes-panel${active ? ' is-active' : ''}`} onPointerDownCapture={onActivate}>
-      <span className="surface-label">설명 · 판서</span>
       <div className="content-notes-scroll" ref={setElement}>
-        {logicalSize && (
-          <div className="content-notes-surface" style={{ width: logicalSize.width, height: logicalSize.height }}>
-            <AnnotationCanvas metrics={metrics} strokes={annotation.strokes} activeTool={active ? annotation.activeTool : 'none'} settings={annotation.settings}
+        {logicalWidth && (
+          <div className="content-notes-surface" style={{ width: logicalWidth, height: CONTENT_NOTES_LOGICAL_HEIGHT }} data-workspace-height={CONTENT_NOTES_LOGICAL_HEIGHT}>
+            <AnnotationCanvas metrics={metrics} strokes={annotation.strokes} activeTool={annotation.activeTool} settings={annotation.settings}
               isVisible={annotation.isVisible} onAddStroke={annotation.onAddStroke} onEraseStrokes={annotation.onEraseStrokes}
-              ariaLabel={`${title} 설명 판서 영역`} />
+              ariaLabel={`${title} 설명 판서 영역`} coordinateScope="content-workspace" coordinateMode="problem-logical-y"
+              strokeWidthReference={CLASSROOM_STROKE_WIDTH_REFERENCE} />
           </div>
         )}
       </div>
@@ -69,25 +76,9 @@ function NotesSurface({ annotation, active, title, onActivate }: {
 
 export function ContentFocusView({
   loadedPdf, block, sourceAnnotations, notesAnnotations, activeSurface, onActiveSurfaceChange, onReturnToTextbook,
-  viewMode, onViewModeChange,
+  viewMode, onViewModeChange, workspaceState, onWorkspaceStateChange,
 }: ContentFocusViewProps) {
-  const [fitMode, setFitMode] = useState<ContentFitMode>('readable')
-  const [sourceElement, setSourceElement] = useState<HTMLDivElement | null>(null)
-  const [cropMetrics, setCropMetrics] = useState<PdfViewportMetrics | null>(null)
-  const [sourceLogicalSize, setSourceLogicalSize] = useState<{ width: number; height: number } | null>(null)
-  const sourceSize = useElementSize(sourceElement)
-  const updateMetrics = useCallback((metrics: PdfViewportMetrics) => setCropMetrics(metrics), [])
   const sourceActive = activeSurface === 'source'
-
-  useEffect(() => {
-    setSourceLogicalSize(null)
-    setCropMetrics(null)
-  }, [block.id])
-
-  useEffect(() => {
-    if (sourceLogicalSize || sourceSize.width <= 0 || sourceSize.height <= 0) return
-    setSourceLogicalSize({ width: sourceSize.width, height: sourceSize.height })
-  }, [sourceLogicalSize, sourceSize.height, sourceSize.width])
 
   return (
     <section className="content-focus-view" aria-labelledby="content-focus-title">
@@ -100,32 +91,47 @@ export function ContentFocusView({
         </div>
         <div className="content-view-controls" aria-label="콘텐츠 보기 설정">
           <ContentViewModeSelector value={viewMode} onChange={onViewModeChange} />
-          <div className="segmented-control" aria-label="원문 표시 크기">
-            <button type="button" className={fitMode === 'all' ? 'is-active' : undefined} onClick={() => setFitMode('all')}>전체 맞춤</button>
-            <button type="button" className={fitMode === 'readable' ? 'is-active' : undefined} onClick={() => setFitMode('readable')}>원문 맞춤</button>
-          </div>
+          {viewMode === 'canvas' && <ContentCanvasZoomControls state={workspaceState} onStateChange={onWorkspaceStateChange} />}
         </div>
       </header>
-      <div className={`content-focus-body content-focus-body--${viewMode}`}>
-        <section className={`content-source-panel${sourceActive ? ' is-active' : ''}`} onPointerDownCapture={() => onActiveSurfaceChange('source')}>
-          <span className="surface-label">원문 · 직접 판서</span>
-          <div className="content-source-scroll" ref={setSourceElement}>
-            {sourceLogicalSize && (
-              <div className="content-crop-stage" style={cropMetrics ? { width: cropMetrics.width, height: cropMetrics.height } : undefined}>
-                <ContentCropCanvas document={loadedPdf.document} pageNumber={block.sourcePage} region={block.sourceRegion}
-                  availableWidth={Math.max(1, sourceLogicalSize.width - 20)} availableHeight={Math.max(1, sourceLogicalSize.height - 20)}
-                  title={block.title} fitMode={fitMode === 'all' ? 'adaptive' : 'width'} onMetricsChange={updateMetrics} />
-                {cropMetrics && (
-                  <AnnotationCanvas metrics={cropMetrics} strokes={sourceAnnotations.strokes} activeTool={sourceActive ? sourceAnnotations.activeTool : 'none'}
-                    settings={sourceAnnotations.settings} isVisible={sourceAnnotations.isVisible} onAddStroke={sourceAnnotations.onAddStroke}
-                    onEraseStrokes={sourceAnnotations.onEraseStrokes} ariaLabel={`${block.title} 원문 판서 영역`} />
-                )}
-              </div>
+      {viewMode === 'canvas' ? (
+        <CanvasContentWorkspace
+          loadedPdf={loadedPdf}
+          block={block}
+          sourceAnnotations={sourceAnnotations}
+          workspaceAnnotations={notesAnnotations}
+          workspaceHeight={2200}
+          workspaceCoordinateMode="problem-logical-y"
+          state={workspaceState}
+          onStateChange={onWorkspaceStateChange}
+          onWorkspaceActivate={() => onActiveSurfaceChange('notes')}
+        />
+      ) : (
+        <div className="content-focus-body">
+          <ResizableSplit
+            orientation={viewMode}
+            ratio={viewMode === 'vertical' ? workspaceState.verticalRatio : workspaceState.horizontalRatio}
+            onRatioChange={(ratio) => onWorkspaceStateChange(viewMode === 'vertical' ? { verticalRatio: ratio } : { horizontalRatio: ratio })}
+            label={viewMode === 'vertical' ? '상하 영역 크기 조절' : '좌우 영역 크기 조절'}
+            source={(
+              <ContentSourcePane loadedPdf={loadedPdf} block={block} orientation={viewMode} annotation={sourceAnnotations}
+                active={sourceActive} onActivate={() => onActiveSurfaceChange('source')} />
             )}
-          </div>
-        </section>
-        <NotesSurface annotation={notesAnnotations} active={activeSurface === 'notes'} title={block.title} onActivate={() => onActiveSurfaceChange('notes')} />
-      </div>
+            writing={viewMode === 'horizontal' ? (
+              <HorizontalWritingWorkspace
+                title={block.title}
+                annotation={notesAnnotations}
+                coordinateMode="problem-logical-y"
+                workspaceHeight={CONTENT_NOTES_LOGICAL_HEIGHT}
+                active={activeSurface === 'notes'}
+                onActivate={() => onActiveSurfaceChange('notes')}
+              />
+            ) : (
+              <NotesSurface annotation={notesAnnotations} active={activeSurface === 'notes'} title={block.title} onActivate={() => onActiveSurfaceChange('notes')} />
+            )}
+          />
+        </div>
+      )}
     </section>
   )
 }

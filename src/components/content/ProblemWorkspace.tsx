@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
+import { CLASSROOM_STROKE_WIDTH_REFERENCE } from '../annotation/annotationSizing'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
 import type { PdfViewportMetrics } from '../../types/pdf'
@@ -68,7 +69,7 @@ export function ProblemWorkspace({
         <AnnotationCanvas
           metrics={annotationMetrics}
           strokes={annotationStrokes}
-          activeTool={active ? annotationTool : 'none'}
+          activeTool={annotationTool}
           settings={annotationSettings}
           isVisible={annotationsVisible}
           onAddStroke={onAddStroke}
@@ -76,6 +77,7 @@ export function ProblemWorkspace({
           ariaLabel={`${title} 풀이 판서 영역`}
           coordinateScope="problem-workspace"
           coordinateMode="problem-logical-y"
+          strokeWidthReference={CLASSROOM_STROKE_WIDTH_REFERENCE}
         />
       </div>
       <div className="workspace-extension-action">

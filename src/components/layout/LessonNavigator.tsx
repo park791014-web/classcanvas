@@ -131,11 +131,10 @@ export function LessonNavigator({
           <button type="button" className="problem-open-button content-open-button" title={block.title} onClick={() => onSelectBlock(block)}>
             <span className={`content-type-badge content-type-badge--${block.type}`}>{CONTENT_TYPE_LABELS[block.type]}</span>
             <span className="content-block-title">{block.title}</span>
-            <small>p.{block.sourcePage}</small>
           </button>
           <div className="problem-item-actions">
-            <button type="button" aria-label={`${block.title} 수정`} onClick={() => startEditing(block)}>수정</button>
-            <button type="button" aria-label={`${block.title} 삭제`} onClick={() => setDeletingId(block.id)}>삭제</button>
+            <button type="button" aria-label={`${block.title} 수정`} title="수정" onClick={() => startEditing(block)}>✎</button>
+            <button type="button" aria-label={`${block.title} 삭제`} title="삭제" onClick={() => setDeletingId(block.id)}>×</button>
           </div>
         </>
       )}
@@ -205,9 +204,9 @@ export function LessonNavigator({
               </div>
             ))}
           </section>
-          <div className="navigator-file-action">
-            <PdfFileButton label="다른 PDF 열기" onFileSelected={onFileSelected} />
-          </div>
+          <footer className="navigator-file-action" aria-label="LessonCanvas 제작자 정보">
+            <span>© 2026 LessonCanvas · Designed by Mordenai</span>
+          </footer>
         </div>
       ) : (
         <div className="navigator-empty-state">
