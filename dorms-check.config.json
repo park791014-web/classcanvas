@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "LessonCanvas",
-    "url": "",
+    "url": "https://lessoncanvas.vercel.app/",
     "stack": "Vite"
   },
   "tracks": [

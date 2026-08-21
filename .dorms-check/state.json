@@ -66,6 +66,52 @@
         "eligible": true,
         "unmet": []
       }
+    },
+    {
+      "n": 5,
+      "at": "2026-08-21T05:59:34.420Z",
+      "security": {
+        "score": 76,
+        "grade": "C+",
+        "eligible": false,
+        "blocking": [
+          "sec.header.csp"
+        ]
+      },
+      "edzip": {
+        "eligible": true,
+        "unmet": []
+      }
+    },
+    {
+      "n": 6,
+      "at": "2026-08-21T06:00:55.228Z",
+      "security": {
+        "score": 100,
+        "grade": "A+",
+        "eligible": true,
+        "blocking": []
+      },
+      "edzip": {
+        "eligible": true,
+        "unmet": []
+      }
+    },
+    {
+      "n": 7,
+      "at": "2026-08-21T06:01:00.361Z",
+      "security": {
+        "score": 76,
+        "grade": "C+",
+        "eligible": false,
+        "blocking": [
+          "sec.header.csp"
+        ]
+      },
+      "edzip": {
+        "eligible": true,
+        "unmet": []
+      }
     }
   ],
   "items": {
@@ -152,10 +198,190 @@
       "firstFailRound": null,
       "fixedRound": null,
       "regressed": false
+    },
+    "sec.header.csp": {
+      "status": "fail",
+      "firstFailRound": 5,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.header.hsts": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.header.frame": {
+      "status": "fail",
+      "firstFailRound": 5,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.header.nosniff": {
+      "status": "fail",
+      "firstFailRound": 5,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.header.referrer": {
+      "status": "fail",
+      "firstFailRound": 5,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.header.permissions": {
+      "status": "fail",
+      "firstFailRound": 5,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.fingerprint.powered-by": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.transport.https-redirect": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.transport.ssl-valid": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.transport.old-tls": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "sec.transport.cookie-flags": {
+      "status": "na",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "info.secret-exposed": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "info.config-exposed": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "info.source-map": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "info.stack-trace": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "info.mixed-content": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "cors.policy": {
+      "status": "info",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "seo.title": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "seo.description": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "seo.viewport": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "seo.og": {
+      "status": "fail",
+      "firstFailRound": 5,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "seo.canonical": {
+      "status": "info",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "perf.ttfb": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "perf.page-size": {
+      "status": "pass",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "perf.compression": {
+      "status": "info",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "legal.terms": {
+      "status": "info",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "legal.contact": {
+      "status": "info",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "code.rls.anon-read": {
+      "status": "na",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "code.firebase.public-read": {
+      "status": "na",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
+    },
+    "code.endpoint.unauth": {
+      "status": "na",
+      "firstFailRound": null,
+      "fixedRound": null,
+      "regressed": false
     }
   },
   "passed": {
-    "security": true,
+    "security": false,
     "edzip": true,
     "protection": false
   },

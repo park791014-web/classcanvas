@@ -1,7 +1,295 @@
 {
-  "at": "2026-08-21T05:43:47.919Z",
-  "url": "",
+  "at": "2026-08-21T06:01:00.367Z",
+  "url": "https://lessoncanvas.vercel.app/",
   "results": [
+    {
+      "id": "sec.header.csp",
+      "status": "fail",
+      "observed": "누락: content-security-policy",
+      "evidence": {
+        "header": "content-security-policy",
+        "value": null,
+        "observedAt": "2026-08-21T06:00:59.499Z"
+      }
+    },
+    {
+      "id": "sec.header.hsts",
+      "status": "pass",
+      "observed": "strict-transport-security: max-age=63072000; includeSubDomains; preload",
+      "evidence": {
+        "header": "strict-transport-security",
+        "value": "max-age=63072000; includeSubDomains; preload",
+        "observedAt": "2026-08-21T06:00:59.504Z"
+      }
+    },
+    {
+      "id": "sec.header.frame",
+      "status": "fail",
+      "observed": "누락: x-frame-options",
+      "evidence": {
+        "header": "x-frame-options",
+        "value": null,
+        "observedAt": "2026-08-21T06:00:59.504Z"
+      }
+    },
+    {
+      "id": "sec.header.nosniff",
+      "status": "fail",
+      "observed": "누락: x-content-type-options",
+      "evidence": {
+        "header": "x-content-type-options",
+        "value": null,
+        "observedAt": "2026-08-21T06:00:59.504Z"
+      }
+    },
+    {
+      "id": "sec.header.referrer",
+      "status": "fail",
+      "observed": "누락: referrer-policy",
+      "evidence": {
+        "header": "referrer-policy",
+        "value": null,
+        "observedAt": "2026-08-21T06:00:59.504Z"
+      }
+    },
+    {
+      "id": "sec.header.permissions",
+      "status": "fail",
+      "observed": "누락: permissions-policy",
+      "evidence": {
+        "header": "permissions-policy",
+        "value": null,
+        "observedAt": "2026-08-21T06:00:59.504Z"
+      }
+    },
+    {
+      "id": "sec.fingerprint.powered-by",
+      "status": "pass",
+      "observed": "x-powered-by 미노출(양호)",
+      "evidence": {
+        "poweredBy": null,
+        "server": "Vercel"
+      }
+    },
+    {
+      "id": "sec.transport.https-redirect",
+      "status": "pass",
+      "observed": "HTTP 요청이 HTTPS로 리다이렉트됨 (HTTP 308 -> https://lessoncanvas.vercel.app/)",
+      "evidence": {
+        "httpProbe": "HTTP 308 -> https://lessoncanvas.vercel.app/",
+        "redirectsHttps": true
+      }
+    },
+    {
+      "id": "sec.transport.ssl-valid",
+      "status": "pass",
+      "observed": "TLS 연결 성공 (TLSv1.3)",
+      "evidence": {
+        "protocol": "TLSv1.3",
+        "authorized": true,
+        "authError": null
+      }
+    },
+    {
+      "id": "sec.transport.old-tls",
+      "status": "pass",
+      "observed": "TLS 버전 양호: TLSv1.3",
+      "evidence": {
+        "protocol": "TLSv1.3"
+      }
+    },
+    {
+      "id": "sec.transport.cookie-flags",
+      "status": "na",
+      "observed": "응답에 쿠키 없음",
+      "evidence": {}
+    },
+    {
+      "id": "info.secret-exposed",
+      "status": "pass",
+      "observed": "민감 파일(.env/.git) 노출 없음",
+      "evidence": {
+        "probed": [
+          {
+            "path": "/.env",
+            "httpStatus": 404,
+            "exposed": false
+          },
+          {
+            "path": "/.env.local",
+            "httpStatus": 404,
+            "exposed": false
+          },
+          {
+            "path": "/.env.production",
+            "httpStatus": 404,
+            "exposed": false
+          },
+          {
+            "path": "/.git/config",
+            "httpStatus": 404,
+            "exposed": false
+          },
+          {
+            "path": "/.git/HEAD",
+            "httpStatus": 404,
+            "exposed": false
+          }
+        ],
+        "exposedPaths": []
+      }
+    },
+    {
+      "id": "info.config-exposed",
+      "status": "pass",
+      "observed": "설정 파일 비노출",
+      "evidence": {
+        "exposed": []
+      }
+    },
+    {
+      "id": "info.source-map",
+      "status": "pass",
+      "observed": "소스맵 참조 없음",
+      "evidence": {
+        "sourceMappingURL": false
+      }
+    },
+    {
+      "id": "info.stack-trace",
+      "status": "pass",
+      "observed": "스택트레이스 노출 없음",
+      "evidence": {
+        "stackTrace": false
+      }
+    },
+    {
+      "id": "info.mixed-content",
+      "status": "pass",
+      "observed": "mixed content 없음",
+      "evidence": {
+        "mixedContent": false
+      }
+    },
+    {
+      "id": "cors.policy",
+      "status": "info",
+      "observed": "와일드카드(*) 허용 — 공개 API면 무방, 인증 API면 위험",
+      "evidence": {
+        "allowOrigin": "*",
+        "allowCredentials": false,
+        "reflectsOrigin": false,
+        "wildcard": true
+      }
+    },
+    {
+      "id": "seo.title",
+      "status": "pass",
+      "observed": "<title> 있음",
+      "evidence": {}
+    },
+    {
+      "id": "seo.description",
+      "status": "pass",
+      "observed": "설명 메타",
+      "evidence": {}
+    },
+    {
+      "id": "seo.viewport",
+      "status": "pass",
+      "observed": "viewport 메타",
+      "evidence": {}
+    },
+    {
+      "id": "seo.og",
+      "status": "fail",
+      "observed": "Open Graph 태그",
+      "evidence": {}
+    },
+    {
+      "id": "seo.canonical",
+      "status": "info",
+      "observed": "canonical 링크",
+      "evidence": {}
+    },
+    {
+      "id": "perf.ttfb",
+      "status": "pass",
+      "observed": "응답 시간 216ms",
+      "evidence": {
+        "ms": 216
+      }
+    },
+    {
+      "id": "perf.page-size",
+      "status": "pass",
+      "observed": "문서 크기 0KB",
+      "evidence": {
+        "bytes": 496
+      }
+    },
+    {
+      "id": "perf.compression",
+      "status": "info",
+      "observed": "압축 미표기",
+      "evidence": {
+        "encoding": null
+      }
+    },
+    {
+      "id": "legal.privacy-policy",
+      "status": "pass",
+      "observed": "public/privacy/index.html:24 및 dist/privacy/index.html:24 — /privacy/용 독립 개인정보 처리 안내가 프로덕션 빌드 산출물에 생성됨",
+      "evidence": {
+        "found": true,
+        "via": "path",
+        "where": "/privacy",
+        "status": 200,
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:24 및 dist/privacy/index.html:24 — /privacy/용 독립 개인정보 처리 안내가 프로덕션 빌드 산출물에 생성됨",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "legal.terms",
+      "status": "info",
+      "observed": "이용약관 페이지/링크 없음",
+      "evidence": {
+        "found": false
+      }
+    },
+    {
+      "id": "legal.contact",
+      "status": "info",
+      "observed": "연락처/문의 정보 안 보임",
+      "evidence": {
+        "found": false
+      }
+    },
+    {
+      "id": "code.rls.anon-read",
+      "status": "na",
+      "observed": "Supabase 공개 자격을 앱에서 찾지 못함(비-Supabase 앱이거나 자격 비노출) — RLS 실측 생략",
+      "evidence": {
+        "supabaseUrl": null,
+        "foundJwts": 0
+      }
+    },
+    {
+      "id": "code.firebase.public-read",
+      "status": "na",
+      "observed": "Firebase 실시간 DB 주소를 앱에서 찾지 못함(비-Firebase 앱이거나 미사용) — 프로브 생략",
+      "evidence": {}
+    },
+    {
+      "id": "code.endpoint.unauth",
+      "status": "na",
+      "observed": "앱에서 내부 API 경로를 찾지 못함 — 미인증 호출 프로브 생략",
+      "evidence": {}
+    },
     {
       "id": "code.hardcoded-secret",
       "status": "pass",
@@ -23,8 +311,26 @@
       "status": "na",
       "observed": "Vite 정적 클라이언트 앱이며 서버·배포 설정과 공개 URL이 아직 없어 HTTP 응답 헤더는 현재 코드만으로 판정할 수 없음",
       "evidence": {
-        "configuredHeaders": {},
-        "filesScanned": [],
+        "configuredHeaders": {
+          "content-security-policy": [
+            "vercel.json"
+          ],
+          "x-frame-options": [
+            "vercel.json"
+          ],
+          "x-content-type-options": [
+            "vercel.json"
+          ],
+          "referrer-policy": [
+            "vercel.json"
+          ],
+          "permissions-policy": [
+            "vercel.json"
+          ]
+        },
+        "filesScanned": [
+          "vercel.json"
+        ],
         "aiJudgment": {
           "status": "na",
           "evidence": "Vite 정적 클라이언트 앱이며 서버·배포 설정과 공개 URL이 아직 없어 HTTP 응답 헤더는 현재 코드만으로 판정할 수 없음",
@@ -157,20 +463,29 @@
           "at": "2026-08-21T05:41:12.529Z"
         }
       }
-    },
-    {
-      "id": "legal.privacy-policy",
-      "status": "pass",
-      "observed": "public/privacy/index.html:24 및 dist/privacy/index.html:24 — /privacy/용 독립 개인정보 처리 안내가 프로덕션 빌드 산출물에 생성됨",
-      "evidence": {
-        "aiJudgment": {
-          "status": "pass",
-          "evidence": "public/privacy/index.html:24 및 dist/privacy/index.html:24 — /privacy/용 독립 개인정보 처리 안내가 프로덕션 빌드 산출물에 생성됨",
-          "by": "teacher-assistant",
-          "at": "2026-08-21T05:41:12.529Z"
-        }
-      }
     }
   ],
-  "raw": {}
+  "raw": {
+    "url": "https://lessoncanvas.vercel.app/",
+    "finalUrl": "https://lessoncanvas.vercel.app/",
+    "httpStatus": 200,
+    "ttfbMs": 216,
+    "observedHeaders": [
+      "accept-ranges",
+      "access-control-allow-origin",
+      "age",
+      "cache-control",
+      "content-disposition",
+      "content-length",
+      "content-type",
+      "date",
+      "etag",
+      "last-modified",
+      "server",
+      "strict-transport-security",
+      "x-vercel-cache",
+      "x-vercel-id"
+    ],
+    "scannedAt": "2026-08-21T06:01:00.098Z"
+  }
 }
