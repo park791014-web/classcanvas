@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "LessonCanvas",
+    "url": "",
+    "stack": "Vite"
+  },
+  "tracks": [
+    "security",
+    "edzip"
+  ],
+  "edzipCase": "B",
+  "teacher": {
+    "dormsHandle": ""
+  },
+  "ownershipConfirmed": true
+}

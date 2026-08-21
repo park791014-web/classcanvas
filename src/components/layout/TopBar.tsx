@@ -32,6 +32,7 @@ export function TopBar({
   const aboutDialogRef = useRef<HTMLDivElement>(null)
   const aboutCloseRef = useRef<HTMLButtonElement>(null)
   const statusText = status === 'loading' ? 'PDF 불러오는 중' : documentState?.fileName ?? '현재 자료 없음'
+  const privacyPolicyUrl = `${import.meta.env.BASE_URL}privacy/`
 
   useEffect(() => {
     if (!aboutOpen) return
@@ -98,6 +99,9 @@ export function TopBar({
               <span>문의</span>
               <a href="mailto:equations@naver.com">equations@naver.com</a>
             </div>
+            <a className="about-privacy-link" href={privacyPolicyUrl} target="_blank" rel="noreferrer">
+              개인정보 처리 안내
+            </a>
             <p className="about-copyright">외부 교과서·문제·이미지의 저작권은<br />각 원저작권자에게 있습니다.</p>
           </div>
         </div>

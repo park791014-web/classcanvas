@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "dorms-check",
+    "version": "0.1.0"
+  },
+  "generatedAt": "2026-08-21T05:44:00.038Z",
+  "app": {
+    "name": "LessonCanvas",
+    "url": null,
+    "stack": "Vite",
+    "tracks": [
+      "security",
+      "edzip"
+    ],
+    "edzipCase": "B"
+  },
+  "teacher": {
+    "dormsHandle": null
+  },
+  "tracks": {
+    "security": {
+      "claimed": true,
+      "score": 100,
+      "grade": "A+",
+      "eligible": true
+    },
+    "edzip": {
+      "claimed": true,
+      "eligible": true,
+      "policyPresent": true
+    }
+  },
+  "items": [
+    {
+      "id": "code.hardcoded-secret",
+      "track": "security",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": false,
+      "status": "pass",
+      "observed": "하드코딩 시크릿 미검출",
+      "evidence": {
+        "hits": []
+      }
+    },
+    {
+      "id": "code.client-secret-leak",
+      "track": "security",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": false,
+      "status": "pass",
+      "observed": "클라 시크릿 노출 미검출",
+      "evidence": {
+        "hits": []
+      }
+    },
+    {
+      "id": "code.headers-config",
+      "track": "security",
+      "severity": "info",
+      "method": "ai",
+      "serverVerifiable": false,
+      "status": "na",
+      "observed": "Vite 정적 클라이언트 앱이며 서버·배포 설정과 공개 URL이 아직 없어 HTTP 응답 헤더는 현재 코드만으로 판정할 수 없음",
+      "evidence": {
+        "configuredHeaders": {},
+        "filesScanned": [],
+        "aiJudgment": {
+          "status": "na",
+          "evidence": "Vite 정적 클라이언트 앱이며 서버·배포 설정과 공개 URL이 아직 없어 HTTP 응답 헤더는 현재 코드만으로 판정할 수 없음",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.526Z"
+        }
+      }
+    },
+    {
+      "id": "code.dangerous-pattern",
+      "track": "security",
+      "severity": "info",
+      "method": "ai",
+      "serverVerifiable": false,
+      "status": "pass",
+      "observed": "위험 코드 패턴 미검출",
+      "evidence": {
+        "hits": []
+      }
+    },
+    {
+      "id": "edzip.1-1",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:35 및 src/App.tsx:48 — 개인정보는 수집하지 않고 비식별 UI 접힘 설정만 세션 저장소에 보관",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:35 및 src/App.tsx:48 — 개인정보는 수집하지 않고 비식별 UI 접힘 설정만 세션 저장소에 보관",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.1-2",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:38 — PDF와 판서는 수업 화면 표시 목적으로 기기 안에서만 처리한다고 명시",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:38 — PDF와 판서는 수업 화면 표시 목적으로 기기 안에서만 처리한다고 명시",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.1-3",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:35 및 public/privacy/index.html:41 — 수집 항목 없음, 임시 처리 및 삭제 방법을 명시",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:35 및 public/privacy/index.html:41 — 수집 항목 없음, 임시 처리 및 삭제 방법을 명시",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.2-1",
+      "track": "edzip",
+      "severity": "critical",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:57 및 src/hooks/usePdfDocument.ts:50 — PDF를 브라우저 ArrayBuffer로 읽고 서버 전송 없이 처리하며 외부 AI·추적 코드를 사용하지 않음",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:57 및 src/hooks/usePdfDocument.ts:50 — PDF를 브라우저 ArrayBuffer로 읽고 서버 전송 없이 처리하며 외부 AI·추적 코드를 사용하지 않음",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.3-1",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:50 — 열람·정정·삭제·처리정지 요청 연락처와 처리 절차를 공개",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:50 — 열람·정정·삭제·처리정지 요청 연락처와 처리 절차를 공개",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.4-1",
+      "track": "edzip",
+      "severity": "critical",
+      "method": "ai",
+      "serverVerifiable": false,
+      "status": "pass",
+      "observed": "public/privacy/index.html:54 — 교사용 도구, 학생 계정 없음, 학생 식별 자료 최소화·가림 사용 원칙을 명시",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:54 — 교사용 도구, 학생 계정 없음, 학생 식별 자료 최소화·가림 사용 원칙을 명시",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.5-1",
+      "track": "edzip",
+      "severity": "medium",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:65 — LessonCanvas 운영자와 개인정보 문의 이메일, 침해 상담 기관을 공개",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:65 — LessonCanvas 운영자와 개인정보 문의 이메일, 침해 상담 기관을 공개",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.5-2",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:44 — 개인정보 제3자 제공 및 외부 AI 전송이 없음을 명시",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:44 — 개인정보 제3자 제공 및 외부 AI 전송이 없음을 명시",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "edzip.5-3",
+      "track": "edzip",
+      "severity": "high",
+      "method": "hybrid",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:47 — 앱 기능상 외부 처리 위탁·국외 이전 없음과 향후 서비스 추가 시 사전 공개 원칙을 명시",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:47 — 앱 기능상 외부 처리 위탁·국외 이전 없음과 향후 서비스 추가 시 사전 공개 원칙을 명시",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    },
+    {
+      "id": "legal.privacy-policy",
+      "track": "security",
+      "severity": "high",
+      "method": "deterministic",
+      "serverVerifiable": true,
+      "status": "pass",
+      "observed": "public/privacy/index.html:24 및 dist/privacy/index.html:24 — /privacy/용 독립 개인정보 처리 안내가 프로덕션 빌드 산출물에 생성됨",
+      "evidence": {
+        "aiJudgment": {
+          "status": "pass",
+          "evidence": "public/privacy/index.html:24 및 dist/privacy/index.html:24 — /privacy/용 독립 개인정보 처리 안내가 프로덕션 빌드 산출물에 생성됨",
+          "by": "teacher-assistant",
+          "at": "2026-08-21T05:41:12.529Z"
+        }
+      }
+    }
+  ],
+  "reverifyHints": {
+    "revalidate": [
+      "edzip.1-1",
+      "edzip.1-2",
+      "edzip.1-3",
+      "edzip.2-1",
+      "edzip.3-1",
+      "edzip.5-1",
+      "edzip.5-2",
+      "edzip.5-3",
+      "legal.privacy-policy"
+    ],
+    "note": "서버는 이 항목을 앱 URL 로 독립 재스캔해 대조한다. 불일치 시 발급 거부. 나머지(code.hardcoded-secret 등)는 자기신고로 투명 표기."
+  },
+  "manifestSha256": "f9df6747151232c6a873ae80d98f6cba1f0cf92082fa83212abe2506c6c75053"
+}

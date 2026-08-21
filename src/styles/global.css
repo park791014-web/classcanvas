@@ -1496,6 +1496,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 .about-contact { display: grid; margin-top: 20px; padding: 12px; gap: 3px; background: #f5f7fa; }
 .about-contact span { color: #6b778b; font-size: 11px; font-weight: 800; }
 .about-contact a { color: #1d4ed8; font-weight: 750; }
+.about-privacy-link { display: inline-flex; min-height: 40px; margin-top: 12px; align-items: center; color: #1d4ed8; font-weight: 750; }
 .about-copyright { padding-top: 15px; border-top: 1px solid #e2e7ee; font-size: 12px; }
 
 .navigator-file-action {
