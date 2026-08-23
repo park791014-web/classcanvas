@@ -86,10 +86,14 @@ export function TopBar({
         <button type="button" disabled={!documentState || documentState.currentPage === 1} onClick={onPreviousPage} aria-label="이전 페이지">‹</button>
         <output aria-label="현재 교과서 페이지">{documentState ? `p.${documentState.currentPage}` : 'p.-'}</output>
         <button type="button" disabled={!documentState || documentState.currentPage === documentState.totalPages} onClick={onNextPage} aria-label="다음 페이지">›</button>
-        <span className="tablet-zoom-controls" aria-label="태블릿 PDF 확대 및 축소">
+        <span className="tablet-zoom-controls" aria-label="태블릿 PDF 보기 조절">
           <button type="button" onClick={onZoomOut} disabled={!documentState || documentState.scale <= MIN_MANUAL_ZOOM_SCALE} aria-label="태블릿 PDF 축소">−</button>
           <output aria-label="태블릿 PDF 확대 비율">{Math.round((documentState?.scale ?? 1) * 100)}%</output>
           <button type="button" onClick={onZoomIn} disabled={!documentState || documentState.scale >= MAX_ZOOM_SCALE} aria-label="태블릿 PDF 확대">＋</button>
+          <button type="button" className="tablet-fit-button" onClick={onPageFit} disabled={!documentState}
+            aria-label="높이 맞춤" title="높이 맞춤" aria-pressed={documentState?.zoomMode === 'page-fit'}>↕</button>
+          <button type="button" className="tablet-fit-button" onClick={onWidthFit} disabled={!documentState}
+            aria-label="폭 맞춤" title="폭 맞춤" aria-pressed={documentState?.zoomMode === 'width-fit'}>↔</button>
         </span>
       </nav>
       {aboutOpen && (

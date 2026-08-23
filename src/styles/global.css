@@ -1669,17 +1669,14 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .brand-block h1 { font-size: 17px; }
   .material-status { font-size: 11px; }
   .material-status .file-button { max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .topbar-zoom-controls { gap: 2px; }
-  .topbar-zoom-controls > button:not(.fit-mode-button),
-  .topbar-zoom-controls > output { display: none; }
-  .topbar-zoom-controls button { min-width: 32px; height: 34px; padding-inline: 5px; font-size: 10px; }
-  .topbar-zoom-controls .fit-mode-button { min-width: 62px; }
+  .topbar-zoom-controls { display: none; }
   .topbar-page-controls { display: flex; flex: none; gap: 3px; }
   .topbar-page-controls button { width: 40px; min-width: 40px; height: 40px; }
   .topbar-page-controls output { min-width: 42px; font-size: 11px; }
   .tablet-zoom-controls { display: inline-flex; align-items: center; margin-left: 3px; padding-left: 5px; gap: 2px; border-left: 1px solid #52617a; }
   .tablet-zoom-controls button { width: 40px; min-width: 40px; height: 40px; padding: 2px 7px; }
   .tablet-zoom-controls output { min-width: 42px; color: #e5ebf4; font-size: 10px; text-align: center; }
+  .tablet-zoom-controls .tablet-fit-button[aria-pressed="true"] { color: #fff; background: #315b9b; border-color: #8eb4f5; }
 
   .lesson-layout,
   .lesson-layout.is-sidebar-collapsed { grid-template-columns: 50px minmax(0, 1fr); padding: 8px; gap: 8px; overflow: hidden; }
@@ -1764,6 +1761,15 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .tool-button-group button,
   .width-controls button,
   .history-controls button { min-height: 38px; padding-inline: 6px; font-size: 10px; }
+  .tool-button-group button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    min-width: 52px;
+    height: 40px;
+    padding-inline: 6px;
+  }
   .color-button,
   .custom-color-button { width: 28px; height: 28px; }
   .history-action--undo,
@@ -1955,6 +1961,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   }
   .tablet-zoom-controls button { width: 34px; min-width: 34px; height: 34px; padding: 2px 6px; }
   .tablet-zoom-controls output { min-width: 38px; color: #e5ebf4; font-size: 10px; text-align: center; }
+  .tablet-zoom-controls .tablet-fit-button[aria-pressed="true"] { color: #fff; background: #315b9b; border-color: #8eb4f5; }
 
   .tool-bar {
     display: grid;
@@ -1987,6 +1994,15 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .tool-button-group button,
   .width-controls button,
   .history-controls button { min-height: 38px; padding-inline: 6px; font-size: 10px; }
+  .tool-button-group button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    min-width: 52px;
+    height: 40px;
+    padding-inline: 6px;
+  }
   .color-button,
   .custom-color-button { width: 28px; height: 28px; }
   .history-action--undo,
@@ -2047,6 +2063,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .tablet-zoom-controls { display: inline-flex; align-items: center; margin-left: 3px; padding-left: 5px; gap: 2px; border-left: 1px solid #52617a; }
   .tablet-zoom-controls button { width: 40px; min-width: 40px; height: 40px; padding: 2px 7px; }
   .tablet-zoom-controls output { min-width: 42px; color: #e5ebf4; font-size: 10px; text-align: center; }
+  .tablet-zoom-controls .tablet-fit-button[aria-pressed="true"] { color: #fff; background: #315b9b; border-color: #8eb4f5; }
 
   .tool-bar {
     display: grid;
@@ -2069,6 +2086,15 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   }
   .toolbar-duplicate-group,
   .toolbar-width-micro { display: none; }
+  .tool-button-group button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    min-width: 52px;
+    height: 40px;
+    padding-inline: 6px;
+  }
   .history-controls { flex: none; justify-self: end; }
   .history-action--undo,
   .history-action--redo { width: 40px; min-width: 40px; padding: 0; border-radius: 50%; }
