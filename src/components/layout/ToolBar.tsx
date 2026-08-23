@@ -60,7 +60,7 @@ export function ToolBar({
   const drawingStyle = drawingTool ? settings[drawingTool] : null
 
   const renderModeControls = (position: '왼쪽' | '오른쪽') => (
-    <div className="toolbar-mode-controls" aria-label={`${position} 수업 화면 모드`}>
+    <div className={`toolbar-mode-controls${position === '오른쪽' ? ' toolbar-duplicate-group' : ''}`} aria-label={`${position} 수업 화면 모드`}>
       {(position === '왼쪽' ? ['board', 'region'] : ['region', 'board']).map((control) => control === 'board' ? (
         <button key="board" type="button" className={isWhiteboard ? 'is-active' : undefined} aria-pressed={isWhiteboard}
           onClick={onToggleWhiteboard}>{isWhiteboard ? '교과서' : '빈 칠판'}</button>
@@ -73,7 +73,7 @@ export function ToolBar({
   )
 
   const renderDrawingTools = (position: '왼쪽' | '오른쪽') => (
-    <div className="tool-button-group" aria-label={`${position} 빠른 탐색 및 판서 도구`}>
+    <div className={`tool-button-group${position === '오른쪽' ? ' toolbar-duplicate-group' : ''}`} aria-label={`${position} 빠른 탐색 및 판서 도구`}>
       <button type="button" className={activeTool === 'none' ? 'is-active' : undefined} aria-pressed={activeTool === 'none'}
         disabled={!hasDocument} onClick={() => onToolChange('none')}>탐색</button>
       {DRAWING_TOOLS.map(({ tool, label }) => (

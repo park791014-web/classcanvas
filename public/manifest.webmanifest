@@ -1,0 +1,11 @@
+{
+  "name": "LessonCanvas",
+  "short_name": "LessonCanvas",
+  "description": "전자칠판 수업을 위한 LessonCanvas 수업 도구",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#eef2f6",
+  "theme_color": "#14213a"
+}

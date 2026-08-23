@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { CONTENT_TYPE_LABELS } from '../../types/content'
 import type { ContentBlock, ContentType, SourceRegion } from '../../types/content'
 import { ContentBlockEditor } from './ContentBlockEditor'
@@ -17,6 +18,8 @@ interface NormalizedPosition {
 }
 
 const MIN_SELECTION_SIZE = 28
+const PANEL_GAP = 10
+const VIEWPORT_PADDING = 8
 
 function clamp(value: number) {
   return Math.min(1, Math.max(0, value))
@@ -42,12 +45,14 @@ function regionStyle(region: SourceRegion) {
 
 export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlockId, onSave }: RegionSelectorProps) {
   const surfaceRef = useRef<HTMLDivElement>(null)
+  const savePanelRef = useRef<HTMLFormElement>(null)
   const pointerIdRef = useRef<number | null>(null)
   const startRef = useRef<NormalizedPosition | null>(null)
   const [draftRegion, setDraftRegion] = useState<SourceRegion | null>(null)
   const [draftType, setDraftType] = useState<ContentType>('problem')
   const [draftTitle, setDraftTitle] = useState(defaultTitles.problem)
   const [message, setMessage] = useState<string | null>(null)
+  const [savePanelPosition, setSavePanelPosition] = useState<{ left: number; top: number } | null>(null)
 
   useEffect(() => {
     if (!draftRegion) setDraftTitle(defaultTitles[draftType])
@@ -59,7 +64,77 @@ export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlock
     startRef.current = null
     setDraftRegion(null)
     setMessage(null)
+    setSavePanelPosition(null)
   }, [active])
+
+  const positionSavePanel = useCallback(() => {
+    const layer = surfaceRef.current
+    const panel = savePanelRef.current
+    if (!draftRegion || !layer || !panel) return
+
+    const layerBounds = layer.getBoundingClientRect()
+    const panelBounds = panel.getBoundingClientRect()
+    const visualViewport = window.visualViewport
+    const viewportLeft = visualViewport?.offsetLeft ?? 0
+    const viewportTop = visualViewport?.offsetTop ?? 0
+    const viewportRight = viewportLeft + (visualViewport?.width ?? window.innerWidth)
+    const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight)
+    const selectionLeft = layerBounds.left + draftRegion.x * layerBounds.width
+    const selectionTop = layerBounds.top + draftRegion.y * layerBounds.height
+    const selectionRight = selectionLeft + draftRegion.width * layerBounds.width
+    const selectionBottom = selectionTop + draftRegion.height * layerBounds.height
+    const panelWidth = panelBounds.width
+    const panelHeight = panelBounds.height
+    const clampLeft = (value: number) => Math.min(
+      viewportRight - panelWidth - VIEWPORT_PADDING,
+      Math.max(viewportLeft + VIEWPORT_PADDING, value),
+    )
+    const clampTop = (value: number) => Math.min(
+      viewportBottom - panelHeight - VIEWPORT_PADDING,
+      Math.max(viewportTop + VIEWPORT_PADDING, value),
+    )
+
+    let left = clampLeft(selectionLeft + (selectionRight - selectionLeft - panelWidth) / 2)
+    let top = selectionBottom + PANEL_GAP
+
+    if (top + panelHeight > viewportBottom - VIEWPORT_PADDING) {
+      const rightCandidate = selectionRight + PANEL_GAP
+      if (rightCandidate + panelWidth <= viewportRight - VIEWPORT_PADDING) {
+        left = rightCandidate
+        top = clampTop(selectionTop + (selectionBottom - selectionTop - panelHeight) / 2)
+      } else {
+        const aboveCandidate = selectionTop - panelHeight - PANEL_GAP
+        if (aboveCandidate >= viewportTop + VIEWPORT_PADDING) {
+          top = aboveCandidate
+        } else {
+          const leftCandidate = selectionLeft - panelWidth - PANEL_GAP
+          left = leftCandidate >= viewportLeft + VIEWPORT_PADDING ? leftCandidate : clampLeft(left)
+          top = clampTop(selectionTop + (selectionBottom - selectionTop - panelHeight) / 2)
+        }
+      }
+    }
+
+    setSavePanelPosition({ left: clampLeft(left), top: clampTop(top) })
+  }, [draftRegion])
+
+  useLayoutEffect(() => {
+    if (!draftRegion || pointerIdRef.current !== null) return
+    positionSavePanel()
+    const panel = savePanelRef.current
+    const resizeObserver = panel ? new ResizeObserver(positionSavePanel) : null
+    if (panel) resizeObserver?.observe(panel)
+    window.addEventListener('resize', positionSavePanel)
+    window.addEventListener('scroll', positionSavePanel, true)
+    window.visualViewport?.addEventListener('resize', positionSavePanel)
+    window.visualViewport?.addEventListener('scroll', positionSavePanel)
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', positionSavePanel)
+      window.removeEventListener('scroll', positionSavePanel, true)
+      window.visualViewport?.removeEventListener('resize', positionSavePanel)
+      window.visualViewport?.removeEventListener('scroll', positionSavePanel)
+    }
+  }, [draftRegion, positionSavePanel])
 
   const toPosition = (event: ReactPointerEvent<HTMLDivElement>): NormalizedPosition => {
     const bounds = surfaceRef.current?.getBoundingClientRect()
@@ -119,6 +194,7 @@ export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlock
     setDraftType('problem')
     setDraftTitle(defaultTitles.problem)
     setMessage(null)
+    setSavePanelPosition(null)
   }
 
   const saveDraft = () => {
@@ -160,8 +236,17 @@ export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlock
 
       {draftRegion && <div className="draft-region-outline" style={regionStyle(draftRegion)} aria-hidden="true" />}
 
-      {active && draftRegion && draftRegion.width > 0 && draftRegion.height > 0 && pointerIdRef.current === null && (
-        <form className="region-save-panel" onSubmit={(event) => { event.preventDefault(); saveDraft() }}>
+      {active && draftRegion && draftRegion.width > 0 && draftRegion.height > 0 && pointerIdRef.current === null && createPortal((
+        <form
+          ref={savePanelRef}
+          className="region-save-panel"
+          style={{
+            left: savePanelPosition?.left ?? VIEWPORT_PADDING,
+            top: savePanelPosition?.top ?? VIEWPORT_PADDING,
+            visibility: savePanelPosition ? 'visible' : 'hidden',
+          } as CSSProperties}
+          onSubmit={(event) => { event.preventDefault(); saveDraft() }}
+        >
           <strong>선택 영역 저장</strong>
           <ContentBlockEditor
             type={draftType}
@@ -174,7 +259,7 @@ export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlock
             <button type="submit" className="primary-action">저장</button>
           </div>
         </form>
-      )}
+      ), document.body)}
 
       {active && message && <div className="region-selection-message" role="status">{message}</div>}
       {active && !draftRegion && !message && <div className="region-selection-guide">저장할 콘텐츠 영역을 드래그해 선택하세요.</div>}

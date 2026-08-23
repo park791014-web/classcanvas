@@ -643,13 +643,14 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 }
 
 .region-save-panel {
-  position: absolute;
-  top: 16px;
-  right: 16px;
+  z-index: 120;
+  position: fixed;
   display: grid;
   width: min(290px, calc(100% - 32px));
+  max-height: calc(100dvh - 16px);
   padding: 16px;
   gap: 8px;
+  overflow-y: auto;
   pointer-events: auto;
   background: #fff;
   border: 1px solid #b8c3d2;
@@ -1640,4 +1641,179 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .content-canvas-zoom-controls button { min-width: 31px; min-height: 34px; padding-inline: 5px; font-size: 10px; }
   .content-canvas-zoom-controls output { min-width: 42px; font-size: 10px; }
   .content-canvas-reset { display: none; }
+}
+
+/* Phase M1: viewport-led tablet and mobile classroom layout. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  html, body, #root { min-width: 0; min-height: 0; }
+
+  .app-shell {
+    grid-template-rows: 52px minmax(0, 1fr) 58px;
+    min-height: 0;
+    height: 100dvh;
+  }
+
+  .top-bar {
+    grid-template-columns: auto minmax(80px, 1fr) auto auto;
+    padding-inline: 10px;
+    gap: 7px;
+  }
+  .brand-block { gap: 6px; }
+  .brand-mark { width: 30px; height: 30px; }
+  .brand-block h1 { font-size: 17px; }
+  .material-status { font-size: 11px; }
+  .material-status .file-button { max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar-zoom-controls { gap: 2px; }
+  .topbar-zoom-controls button { min-width: 32px; height: 34px; padding-inline: 5px; font-size: 10px; }
+  .topbar-zoom-controls .fit-mode-button { min-width: 62px; }
+  .topbar-zoom-controls output { min-width: 42px; font-size: 11px; }
+  .topbar-page-controls { gap: 3px; }
+  .topbar-page-controls button { min-width: 34px; height: 34px; }
+  .topbar-page-controls output { min-width: 42px; font-size: 11px; }
+
+  .lesson-layout { grid-template-columns: 200px minmax(0, 1fr); padding: 8px; gap: 8px; overflow: hidden; }
+  .lesson-layout.is-sidebar-collapsed { grid-template-columns: 56px minmax(0, 1fr); }
+  .lesson-navigator--collapsed { padding-top: 7px; }
+  .navigator-toggle { width: 40px; min-width: 40px; height: 40px; }
+  .content-open-button .content-block-title {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .tool-bar {
+    display: flex;
+    justify-content: flex-start;
+    min-width: 0;
+    padding-inline: 7px;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+  .toolbar-label,
+  .annotation-toolbar-controls,
+  .history-controls { flex: none; }
+  .annotation-toolbar-controls { display: flex; width: max-content; }
+  .toolbar-duplicate-group { display: none; }
+  .toolbar-mode-controls,
+  .tool-button-group,
+  .color-controls,
+  .width-controls,
+  .history-controls { min-height: 42px; padding-inline: 4px; gap: 3px; }
+  .toolbar-mode-controls button,
+  .tool-button-group button,
+  .width-controls button,
+  .history-controls button { min-height: 38px; padding-inline: 6px; font-size: 10px; }
+  .color-button,
+  .custom-color-button { width: 28px; height: 28px; }
+}
+
+@media (max-width: 767px) {
+  html, body, #root { min-width: 0; min-height: 0; }
+
+  .app-shell {
+    grid-template-rows: 46px minmax(0, 1fr) 56px;
+    min-height: 0;
+    height: 100dvh;
+  }
+
+  .top-bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding-inline: 6px;
+    gap: 5px;
+  }
+  .brand-block { gap: 4px; }
+  .brand-mark { display: grid; width: 28px; height: 28px; font-size: 15px; border-radius: 6px; }
+  .brand-block h1 { display: none; }
+  .about-trigger { width: 28px; min-width: 28px; height: 28px; min-height: 28px; }
+  .material-status { display: flex; min-width: 0; font-size: 11px; }
+  .material-status .status-indicator,
+  .material-status .file-button { display: none; }
+  .material-file-name { display: block; }
+  .topbar-zoom-controls { display: none; }
+  .topbar-page-controls { display: flex; gap: 2px; }
+  .topbar-page-controls button { min-width: 34px; height: 34px; padding: 2px 7px; }
+  .topbar-page-controls output { min-width: 38px; font-size: 11px; }
+
+  .lesson-layout,
+  .lesson-layout.is-sidebar-collapsed {
+    grid-template-columns: 52px minmax(0, 1fr);
+    min-height: 0;
+    padding: 6px;
+    gap: 6px;
+    overflow: hidden;
+  }
+  .lesson-navigator--collapsed { padding-top: 5px; }
+  .lesson-navigator--collapsed .navigator-toggle { width: 40px; min-width: 40px; height: 40px; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) {
+    z-index: 30;
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 6px;
+    display: flex;
+    width: min(86vw, 320px);
+    min-height: 0;
+    box-shadow: 10px 0 30px rgb(15 23 42 / 24%);
+  }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .panel-heading {
+    justify-content: space-between;
+    min-height: 46px;
+    height: 46px;
+    padding: 5px 8px 5px 12px;
+  }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .panel-heading h2 { display: block; font-size: 18px; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-document { display: flex; min-height: 0; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-empty-state { display: flex; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-toggle { width: 38px; min-width: 38px; height: 38px; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-file-action { display: block; }
+
+  .tool-bar {
+    display: flex;
+    justify-content: flex-start;
+    min-width: 0;
+    padding-inline: 5px;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+  .toolbar-label { display: none; }
+  .annotation-toolbar-controls { display: contents; }
+  .toolbar-duplicate-group { display: none; }
+  .annotation-toolbar-controls > .tool-button-group { order: 1; }
+  .annotation-toolbar-controls > .color-controls { order: 2; }
+  .annotation-toolbar-controls > .width-controls { order: 3; }
+  .history-controls { order: 4; flex: none; }
+  .annotation-toolbar-controls > .toolbar-mode-controls { order: 5; }
+  .toolbar-mode-controls,
+  .tool-button-group,
+  .color-controls,
+  .width-controls,
+  .history-controls { flex: none; min-height: 44px; padding-inline: 4px; gap: 3px; }
+  .toolbar-mode-controls button,
+  .tool-button-group button,
+  .width-controls button,
+  .history-controls button { min-height: 38px; padding-inline: 6px; font-size: 10px; }
+  .color-button,
+  .custom-color-button { width: 30px; height: 30px; }
+
+  .region-save-panel { width: min(360px, calc(100vw - 16px)); padding: 10px; gap: 6px; }
+  .region-save-panel strong { font-size: 14px; }
+  .region-save-panel input { height: 38px; }
+  .region-save-panel button { min-height: 38px; }
+  .content-type-options { gap: 3px; }
+  .content-type-options button { min-height: 36px; padding-inline: 7px; }
+
+  .about-backdrop { padding: 10px; }
+  .about-dialog { width: min(420px, calc(100vw - 20px)); max-height: calc(100dvh - 20px); padding: 16px; overflow-y: auto; }
+}
+
+@media (pointer: coarse) {
+  .navigator-toggle,
+  .content-split-ratio-controls button { min-width: 42px; min-height: 42px; }
+  .content-split-divider::before { inset: -10px; }
 }

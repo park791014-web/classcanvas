@@ -24,6 +24,7 @@ import { analyzePage } from './services/contentAnalysis/analyzePage'
 const MIN_SCALE = 0.5
 const MAX_SCALE = 2.5
 const SCALE_STEP = 0.25
+const MOBILE_VIEWPORT_QUERY = '(max-width: 767px)'
 const IDLE_ANALYSIS_PROGRESS: AnalysisProgress = { running: false, currentPage: 0, completedPages: 0, totalPages: 0 }
 const DEFAULT_DRAWING_SETTINGS: AnnotationSettings = {
   pen: { color: '#111827', widthPreset: 'normal' },
@@ -45,7 +46,14 @@ function App() {
   const [analysisProgress, setAnalysisProgress] = useState<AnalysisProgress>(IDLE_ANALYSIS_PROGRESS)
   const [analysisNotice, setAnalysisNotice] = useState<string | null>(null)
   const [analysisReviewOpen, setAnalysisReviewOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => sessionStorage.getItem('lessoncanvas:sidebar-collapsed') === 'true')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const storageKey = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
+      ? 'lessoncanvas:mobile-sidebar-collapsed'
+      : 'lessoncanvas:sidebar-collapsed'
+    const storedPreference = sessionStorage.getItem(storageKey)
+    if (storedPreference !== null) return storedPreference === 'true'
+    return window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
+  })
   const [workspaceMode, setWorkspaceMode] = useState<'textbook' | 'whiteboard'>('textbook')
   const [whiteboardPage, setWhiteboardPage] = useState(1)
   const [whiteboardPageCount, setWhiteboardPageCount] = useState(1)
@@ -115,7 +123,10 @@ function App() {
   }, [loadedPdf])
 
   useEffect(() => {
-    sessionStorage.setItem('lessoncanvas:sidebar-collapsed', String(sidebarCollapsed))
+    const storageKey = window.matchMedia(MOBILE_VIEWPORT_QUERY).matches
+      ? 'lessoncanvas:mobile-sidebar-collapsed'
+      : 'lessoncanvas:sidebar-collapsed'
+    sessionStorage.setItem(storageKey, String(sidebarCollapsed))
   }, [sidebarCollapsed])
 
   useEffect(() => () => analysisAbortRef.current?.abort(), [])
