@@ -11,6 +11,9 @@ type LayoutDiagnostics = {
   tablet: boolean
   desktop: boolean
   mode: 'mobile' | 'tablet' | 'desktop'
+  touchLandscapeCompact: boolean
+  touchTablet: boolean
+  effectiveUi: 'mobile' | 'mobile-landscape' | 'tablet' | 'tablet-touch' | 'desktop'
   navigatorWidth: string
   navigatorPosition: string
   pageControlsDisplay: string
@@ -30,6 +33,13 @@ function computed(selector: string, property: keyof CSSStyleDeclaration) {
 function readDiagnostics(): LayoutDiagnostics {
   const mobile = matches('(max-width: 767px)')
   const tablet = matches('(min-width: 768px) and (max-width: 1199px)')
+  const touchLandscapeCompact = matches(
+    '(pointer: coarse) and (hover: none) and (orientation: landscape) and (min-width: 600px) and (max-width: 900px) and (max-height: 500px)',
+  )
+  const touchTablet = matches(
+    '(pointer: coarse) and (hover: none) and (min-width: 901px) and (max-width: 1399px)',
+  )
+  const mode = mobile ? 'mobile' : tablet ? 'tablet' : 'desktop'
 
   return {
     viewport: `${window.innerWidth} × ${window.innerHeight}`,
@@ -43,7 +53,10 @@ function readDiagnostics(): LayoutDiagnostics {
     mobile,
     tablet,
     desktop: matches('(min-width: 1200px)'),
-    mode: mobile ? 'mobile' : tablet ? 'tablet' : 'desktop',
+    mode,
+    touchLandscapeCompact,
+    touchTablet,
+    effectiveUi: touchLandscapeCompact ? 'mobile-landscape' : touchTablet ? 'tablet-touch' : mode,
     navigatorWidth: computed('.lesson-navigator', 'width'),
     navigatorPosition: computed('.lesson-navigator', 'position'),
     pageControlsDisplay: computed('.topbar-page-controls', 'display'),
@@ -96,6 +109,9 @@ export function LayoutDebugPanel() {
       <span>tablet(768-1199): {String(diagnostics.tablet)}</span>
       <span>desktop(&gt;=1200): {String(diagnostics.desktop)}</span>
       <strong>Mode: {diagnostics.mode}</strong>
+      <span>Touch landscape compact: {String(diagnostics.touchLandscapeCompact)}</span>
+      <span>Touch tablet: {String(diagnostics.touchTablet)}</span>
+      <strong>Effective UI: {diagnostics.effectiveUi}</strong>
       <span>Navigator width: {diagnostics.navigatorWidth}</span>
       <span>Navigator position: {diagnostics.navigatorPosition}</span>
       <span>TopBar page controls: {diagnostics.pageControlsDisplay}</span>

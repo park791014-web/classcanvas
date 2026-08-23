@@ -4,6 +4,7 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import type { LoadedPdfDocument, PdfLoadStatus } from '../types/pdf'
 
 const GENERIC_PDF_ERROR = '이 PDF 파일을 열 수 없습니다. 다른 파일을 선택해 주세요.'
+const PDFJS_ASSET_BASE_URL = `${import.meta.env.BASE_URL}pdfjs/`
 
 function getPdfErrorMessage(error: unknown) {
   if (error instanceof Error && error.name === 'PasswordException') {
@@ -53,7 +54,15 @@ export function usePdfDocument() {
         return
       }
 
-      const loadingTask = getDocument({ data: fileData, verbosity: VerbosityLevel.ERRORS })
+      const loadingTask = getDocument({
+        data: fileData,
+        cMapUrl: `${PDFJS_ASSET_BASE_URL}cmaps/`,
+        cMapPacked: true,
+        standardFontDataUrl: `${PDFJS_ASSET_BASE_URL}standard_fonts/`,
+        wasmUrl: `${PDFJS_ASSET_BASE_URL}wasm/`,
+        useSystemFonts: true,
+        verbosity: VerbosityLevel.WARNINGS,
+      })
       loadingTaskRef.current = loadingTask
       const document = await loadingTask.promise
 
