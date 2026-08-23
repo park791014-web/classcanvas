@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
 import { TiledAnnotationCanvas } from '../annotation/TiledAnnotationCanvas'
 import { CLASSROOM_STROKE_WIDTH_REFERENCE } from '../annotation/annotationSizing'
@@ -83,6 +83,18 @@ export function CanvasContentWorkspace({
   }
 
   const sourceLeft = sourceMetrics ? (WORLD_WIDTH - sourceMetrics.width) / 2 : (WORLD_WIDTH - SOURCE_WIDTH) / 2
+
+  useEffect(() => {
+    if (state.canvasViewportInitialized || !sourceMetrics || viewportSize.width <= 0 || viewportSize.height <= 0) return
+    const sourceCenterX = sourceLeft + sourceMetrics.width / 2
+    const sourceCenterY = SOURCE_TOP + sourceMetrics.height / 2
+    const centeredOffsetX = (WORLD_WIDTH / 2 - sourceCenterX) * state.canvasScale
+    const centeredOffsetY = viewportSize.height / 2 - sourceCenterY * state.canvasScale
+    onStateChange({
+      ...clampOffset(centeredOffsetX, centeredOffsetY),
+      canvasViewportInitialized: true,
+    })
+  }, [clampOffset, onStateChange, sourceLeft, sourceMetrics, state.canvasScale, state.canvasViewportInitialized, viewportSize.height, viewportSize.width])
 
   return (
     <div className="canvas-workspace-shell">

@@ -81,6 +81,8 @@ button, input, textarea, select { font: inherit; }
   gap: 16px;
 }
 .lesson-layout.is-sidebar-collapsed { grid-template-columns: 48px minmax(0, 1fr); }
+.lesson-layout > .lesson-navigator--collapsed { grid-column: 1; grid-row: 1; }
+.lesson-layout > .lesson-workspace { grid-column: 2; grid-row: 1; }
 
 .pdf-drop-overlay {
   z-index: 40;

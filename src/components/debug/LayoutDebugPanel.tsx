@@ -19,6 +19,19 @@ type LayoutDiagnostics = {
   pageControlsDisplay: string
   tabletZoomDisplay: string
   tabletToolbarDisplay: string
+  navigatorOpen: boolean
+  navigatorRect: string
+  navigatorParentRect: string
+  workspaceRect: string
+  pdfRect: string
+  canvasRect: string
+  navigatorStyles: string
+  navigatorParentStyles: string
+  workspaceStyles: string
+  pdfStyles: string
+  canvasStyles: string
+  navigatorPdfOverlap: string
+  pdfCoveredByNavigator: boolean
 }
 
 function matches(query: string) {
@@ -28,6 +41,27 @@ function matches(query: string) {
 function computed(selector: string, property: keyof CSSStyleDeclaration) {
   const element = document.querySelector<HTMLElement>(selector)
   return element ? String(getComputedStyle(element)[property]) : '요소 없음'
+}
+
+function elementRect(element: Element | null) {
+  if (!element) return '요소 없음'
+  const rect = element.getBoundingClientRect()
+  return `${Math.round(rect.x)}/${Math.round(rect.y)}/${Math.round(rect.width)}/${Math.round(rect.height)}`
+}
+
+function elementStyles(element: Element | null) {
+  if (!element) return '요소 없음'
+  const style = getComputedStyle(element)
+  return [
+    `pos:${style.position}`,
+    `display:${style.display}`,
+    `visible:${style.visibility}`,
+    `opacity:${style.opacity}`,
+    `z:${style.zIndex}`,
+    `overflow:${style.overflow}`,
+    `pointer:${style.pointerEvents}`,
+    `transform:${style.transform}`,
+  ].join(' · ')
 }
 
 function readDiagnostics(): LayoutDiagnostics {
@@ -40,6 +74,25 @@ function readDiagnostics(): LayoutDiagnostics {
     '(pointer: coarse) and (hover: none) and (min-width: 901px) and (max-width: 1399px)',
   )
   const mode = mobile ? 'mobile' : tablet ? 'tablet' : 'desktop'
+  const navigator = document.querySelector<HTMLElement>('.lesson-navigator')
+  const navigatorParent = navigator?.parentElement ?? null
+  const workspace = document.querySelector<HTMLElement>('.lesson-workspace')
+  const pdf = document.querySelector<HTMLElement>('.pdf-scroll-viewport')
+  const canvas = document.querySelector<HTMLCanvasElement>('.pdf-page-canvas')
+  const navigatorRect = navigator?.getBoundingClientRect()
+  const pdfRect = pdf?.getBoundingClientRect()
+  const overlapWidth = navigatorRect && pdfRect
+    ? Math.max(0, Math.min(navigatorRect.right, pdfRect.right) - Math.max(navigatorRect.left, pdfRect.left))
+    : 0
+  const overlapHeight = navigatorRect && pdfRect
+    ? Math.max(0, Math.min(navigatorRect.bottom, pdfRect.bottom) - Math.max(navigatorRect.top, pdfRect.top))
+    : 0
+  const overlapArea = overlapWidth * overlapHeight
+  const pdfArea = pdfRect ? pdfRect.width * pdfRect.height : 0
+  const overlapRatio = pdfArea > 0 ? overlapArea / pdfArea : 0
+  const pdfOutsideViewport = Boolean(pdfRect && (
+    pdfRect.right <= 0 || pdfRect.bottom <= 0 || pdfRect.left >= window.innerWidth || pdfRect.top >= window.innerHeight
+  ))
 
   return {
     viewport: `${window.innerWidth} × ${window.innerHeight}`,
@@ -62,6 +115,21 @@ function readDiagnostics(): LayoutDiagnostics {
     pageControlsDisplay: computed('.topbar-page-controls', 'display'),
     tabletZoomDisplay: computed('.tablet-zoom-controls', 'display'),
     tabletToolbarDisplay: computed('.annotation-toolbar-controls', 'display'),
+    navigatorOpen: Boolean(navigator && !navigator.classList.contains('lesson-navigator--collapsed')),
+    navigatorRect: elementRect(navigator),
+    navigatorParentRect: elementRect(navigatorParent),
+    workspaceRect: elementRect(workspace),
+    pdfRect: elementRect(pdf),
+    canvasRect: elementRect(canvas),
+    navigatorStyles: elementStyles(navigator),
+    navigatorParentStyles: elementStyles(navigatorParent),
+    workspaceStyles: elementStyles(workspace),
+    pdfStyles: elementStyles(pdf),
+    canvasStyles: elementStyles(canvas),
+    navigatorPdfOverlap: `${Math.round(overlapArea)}px² / ${Math.round(overlapRatio * 100)}%`,
+    pdfCoveredByNavigator: Boolean(pdfRect && (
+      pdfRect.width <= 1 || pdfRect.height <= 1 || pdfOutsideViewport || overlapRatio >= 0.9
+    )),
   }
 }
 
@@ -117,6 +185,21 @@ export function LayoutDebugPanel() {
       <span>TopBar page controls: {diagnostics.pageControlsDisplay}</span>
       <span>Tablet zoom: {diagnostics.tabletZoomDisplay}</span>
       <span>Tablet toolbar: {diagnostics.tabletToolbarDisplay}</span>
+      <b>Rects: x/y/w/h</b>
+      <span>Navigator open: {String(diagnostics.navigatorOpen)}</span>
+      <span>Navigator rect: {diagnostics.navigatorRect}</span>
+      <span>Navigator parent rect: {diagnostics.navigatorParentRect}</span>
+      <span>Workspace rect: {diagnostics.workspaceRect}</span>
+      <span>PDF rect: {diagnostics.pdfRect}</span>
+      <span>Canvas rect: {diagnostics.canvasRect}</span>
+      <span>Overlap: {diagnostics.navigatorPdfOverlap}</span>
+      <strong>PDF covered by navigator: {String(diagnostics.pdfCoveredByNavigator)}</strong>
+      <b>Computed styles</b>
+      <span>Navigator: {diagnostics.navigatorStyles}</span>
+      <span>Navigator parent: {diagnostics.navigatorParentStyles}</span>
+      <span>Workspace: {diagnostics.workspaceStyles}</span>
+      <span>PDF: {diagnostics.pdfStyles}</span>
+      <span>Canvas: {diagnostics.canvasStyles}</span>
     </aside>
   )
 }

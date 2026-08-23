@@ -4,6 +4,7 @@ import { CLASSROOM_STROKE_WIDTH_REFERENCE } from '../annotation/annotationSizing
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
 import type { ContentWorkspaceState } from '../../types/content'
+import { MAX_ZOOM_SCALE, MIN_MANUAL_ZOOM_SCALE } from '../../constants/zoom'
 
 interface WhiteboardViewProps {
   page: number
@@ -24,8 +25,6 @@ interface WhiteboardViewProps {
 
 const WORLD_WIDTH = 6000
 const WORLD_HEIGHT = 4000
-const MIN_SCALE = 0.5
-const MAX_SCALE = 2.5
 const SCALE_STEP = 0.25
 
 function clamp(value: number, minimum: number, maximum: number) {
@@ -64,7 +63,7 @@ export function WhiteboardView({
   }, [viewportSize.height, viewportSize.width, workspaceState.canvasScale])
 
   const setScale = (scale: number) => {
-    onWorkspaceStateChange({ canvasScale: clamp(scale, MIN_SCALE, MAX_SCALE) })
+    onWorkspaceStateChange({ canvasScale: clamp(scale, MIN_MANUAL_ZOOM_SCALE, MAX_ZOOM_SCALE) })
   }
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -111,10 +110,10 @@ export function WhiteboardView({
           <button type="button" aria-label="새 빈 칠판 추가" onClick={onAddPage}>＋</button>
         </nav>
         <div className="whiteboard-zoom-controls" aria-label="빈 칠판 확대 및 축소">
-          <button type="button" aria-label="빈 칠판 축소" disabled={workspaceState.canvasScale <= MIN_SCALE}
+          <button type="button" aria-label="빈 칠판 축소" disabled={workspaceState.canvasScale <= MIN_MANUAL_ZOOM_SCALE}
             onClick={() => setScale(workspaceState.canvasScale - SCALE_STEP)}>−</button>
           <output aria-label="빈 칠판 확대 비율">{Math.round(workspaceState.canvasScale * 100)}%</output>
-          <button type="button" aria-label="빈 칠판 확대" disabled={workspaceState.canvasScale >= MAX_SCALE}
+          <button type="button" aria-label="빈 칠판 확대" disabled={workspaceState.canvasScale >= MAX_ZOOM_SCALE}
             onClick={() => setScale(workspaceState.canvasScale + SCALE_STEP)}>＋</button>
         </div>
       </header>

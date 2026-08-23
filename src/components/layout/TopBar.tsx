@@ -3,6 +3,7 @@ import type { DocumentState, PdfLoadStatus } from '../../types/pdf'
 import { PdfViewerControls } from '../pdf/PdfViewerControls'
 import { PdfFileButton } from '../pdf/PdfFileButton'
 import packageMetadata from '../../../package.json'
+import { MAX_ZOOM_SCALE, MIN_MANUAL_ZOOM_SCALE } from '../../constants/zoom'
 
 interface TopBarProps {
   documentState: DocumentState | null
@@ -86,9 +87,9 @@ export function TopBar({
         <output aria-label="현재 교과서 페이지">{documentState ? `p.${documentState.currentPage}` : 'p.-'}</output>
         <button type="button" disabled={!documentState || documentState.currentPage === documentState.totalPages} onClick={onNextPage} aria-label="다음 페이지">›</button>
         <span className="tablet-zoom-controls" aria-label="태블릿 PDF 확대 및 축소">
-          <button type="button" onClick={onZoomOut} disabled={!documentState || documentState.scale <= 0.5} aria-label="태블릿 PDF 축소">−</button>
+          <button type="button" onClick={onZoomOut} disabled={!documentState || documentState.scale <= MIN_MANUAL_ZOOM_SCALE} aria-label="태블릿 PDF 축소">−</button>
           <output aria-label="태블릿 PDF 확대 비율">{Math.round((documentState?.scale ?? 1) * 100)}%</output>
-          <button type="button" onClick={onZoomIn} disabled={!documentState || documentState.scale >= 2.5} aria-label="태블릿 PDF 확대">＋</button>
+          <button type="button" onClick={onZoomIn} disabled={!documentState || documentState.scale >= MAX_ZOOM_SCALE} aria-label="태블릿 PDF 확대">＋</button>
         </span>
       </nav>
       {aboutOpen && (

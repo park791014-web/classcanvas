@@ -21,9 +21,8 @@ import type { AnalysisCandidate, AnalysisProgress, AnalysisScope } from './types
 import type { AnnotationSettings, AnnotationTool, DrawingStyle, DrawingTool } from './types/annotation'
 import type { DocumentState, ZoomMode } from './types/pdf'
 import { analyzePage } from './services/contentAnalysis/analyzePage'
+import { MAX_ZOOM_SCALE, MIN_MANUAL_ZOOM_SCALE } from './constants/zoom'
 
-const MIN_SCALE = 0.5
-const MAX_SCALE = 2.5
 const SCALE_STEP = 0.25
 const MOBILE_VIEWPORT_QUERY = '(max-width: 767px)'
 const IDLE_ANALYSIS_PROGRESS: AnalysisProgress = { running: false, currentPage: 0, completedPages: 0, totalPages: 0 }
@@ -154,7 +153,7 @@ function App() {
   const changeScale = useCallback((scale: number, zoomMode: ZoomMode = 'manual') => {
     setDocumentState((current) => current ? {
       ...current,
-      scale: Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale)),
+      scale: Math.min(MAX_ZOOM_SCALE, Math.max(MIN_MANUAL_ZOOM_SCALE, scale)),
       zoomMode,
     } : current)
   }, [])
@@ -221,11 +220,17 @@ function App() {
   }, [activeState, contentBlocks])
 
   const handleSelectBlock = useCallback((block: ContentBlock) => {
-    ensureDrawingTool()
+    if (contentViewMode === 'canvas') setSelectedTool('none')
+    else ensureDrawingTool()
     setDocumentState((current) => current ? { ...current, currentPage: block.sourcePage } : current)
     setSelectedContentId(block.id)
     setActiveCandidateId(null)
-  }, [ensureDrawingTool])
+  }, [contentViewMode, ensureDrawingTool])
+
+  const handleContentViewModeChange = useCallback((mode: ContentViewMode) => {
+    if (mode === 'canvas' && contentViewMode !== 'canvas') setSelectedTool('none')
+    setContentViewMode(mode)
+  }, [contentViewMode])
 
   const toggleWhiteboard = useCallback(() => {
     ensureDrawingTool()
@@ -455,7 +460,7 @@ function App() {
               activeSurface={problemAnnotationSurface}
               onActiveSurfaceChange={setProblemAnnotationSurface}
               viewMode={contentViewMode}
-              onViewModeChange={setContentViewMode}
+              onViewModeChange={handleContentViewModeChange}
               workspaceState={contentWorkspaceState.state}
               onWorkspaceStateChange={contentWorkspaceState.updateState}
             />
@@ -484,7 +489,7 @@ function App() {
               activeSurface={contentAnnotationSurface}
               onActiveSurfaceChange={setContentAnnotationSurface}
               viewMode={contentViewMode}
-              onViewModeChange={setContentViewMode}
+              onViewModeChange={handleContentViewModeChange}
               workspaceState={contentWorkspaceState.state}
               onWorkspaceStateChange={contentWorkspaceState.updateState}
               onReturnToTextbook={() => setSelectedContentId(null)}

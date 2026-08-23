@@ -11,6 +11,7 @@ export interface ContentWorkspaceState {
   canvasScale: number
   canvasOffsetX: number
   canvasOffsetY: number
+  canvasViewportInitialized: boolean
   verticalRatio: number
   horizontalRatio: number
 }

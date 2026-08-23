@@ -5,6 +5,7 @@ const DEFAULT_WORKSPACE_STATE: ContentWorkspaceState = {
   canvasScale: 1,
   canvasOffsetX: 0,
   canvasOffsetY: 0,
+  canvasViewportInitialized: false,
   verticalRatio: 0.35,
   horizontalRatio: 0.35,
 }

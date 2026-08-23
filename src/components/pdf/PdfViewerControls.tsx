@@ -1,4 +1,5 @@
 import type { DocumentState } from '../../types/pdf'
+import { MAX_ZOOM_SCALE, MIN_MANUAL_ZOOM_SCALE } from '../../constants/zoom'
 
 interface PdfViewerControlsProps {
   documentState: DocumentState | null
@@ -21,9 +22,9 @@ export function PdfViewerControls({
 
   return (
     <div className="topbar-zoom-controls" aria-label="확대 및 맞춤">
-        <button type="button" onClick={onZoomOut} disabled={isDisabled || scale <= 0.5} aria-label="축소">−</button>
+        <button type="button" onClick={onZoomOut} disabled={isDisabled || scale <= MIN_MANUAL_ZOOM_SCALE} aria-label="축소">−</button>
         <output aria-label="현재 확대 비율">{Math.round(scale * 100)}%</output>
-        <button type="button" onClick={onZoomIn} disabled={isDisabled || scale >= 2.5} aria-label="확대">＋</button>
+        <button type="button" onClick={onZoomIn} disabled={isDisabled || scale >= MAX_ZOOM_SCALE} aria-label="확대">＋</button>
         <button
           className={`fit-mode-button${zoomMode === 'page-fit' ? ' is-active' : ''}`}
           type="button"
