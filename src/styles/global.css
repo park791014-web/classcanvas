@@ -70,6 +70,7 @@ button, input, textarea, select { font: inherit; }
 }
 
 .tablet-zoom-controls { display: none; }
+.tablet-history-icon { display: none; }
 
 .lesson-layout {
   position: relative;
@@ -1671,15 +1672,15 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .topbar-zoom-controls > output { display: none; }
   .topbar-zoom-controls button { min-width: 32px; height: 34px; padding-inline: 5px; font-size: 10px; }
   .topbar-zoom-controls .fit-mode-button { min-width: 62px; }
-  .topbar-page-controls { gap: 3px; }
-  .topbar-page-controls button { min-width: 34px; height: 34px; }
+  .topbar-page-controls { display: flex; flex: none; gap: 3px; }
+  .topbar-page-controls button { width: 40px; min-width: 40px; height: 40px; }
   .topbar-page-controls output { min-width: 42px; font-size: 11px; }
   .tablet-zoom-controls { display: inline-flex; align-items: center; margin-left: 3px; padding-left: 5px; gap: 2px; border-left: 1px solid #52617a; }
-  .tablet-zoom-controls button { min-width: 34px; height: 34px; padding: 2px 7px; }
+  .tablet-zoom-controls button { width: 40px; min-width: 40px; height: 40px; padding: 2px 7px; }
   .tablet-zoom-controls output { min-width: 42px; color: #e5ebf4; font-size: 10px; text-align: center; }
 
   .lesson-layout,
-  .lesson-layout.is-sidebar-collapsed { grid-template-columns: 56px minmax(0, 1fr); padding: 8px; gap: 8px; overflow: hidden; }
+  .lesson-layout.is-sidebar-collapsed { grid-template-columns: 50px minmax(0, 1fr); padding: 8px; gap: 8px; overflow: hidden; }
   .lesson-navigator:not(.lesson-navigator--collapsed) {
     z-index: 30;
     position: absolute;
@@ -1687,13 +1688,41 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
     bottom: 8px;
     left: 8px;
     display: flex;
-    width: 160px;
+    width: 140px;
+    height: calc(100% - 16px);
     min-height: 0;
+    overflow: hidden;
     box-shadow: 10px 0 30px rgb(15 23 42 / 22%);
   }
-  .lesson-layout.is-sidebar-collapsed { grid-template-columns: 56px minmax(0, 1fr); }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .panel-heading {
+    justify-content: space-between;
+    min-height: 50px;
+    height: 50px;
+    padding: 5px 7px 5px 9px;
+  }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .panel-heading h2 { display: block; font-size: 16px; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-document { display: flex; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-empty-state { display: flex; padding-inline: 12px; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-file-action { display: block; }
+  .lesson-layout.is-sidebar-collapsed { grid-template-columns: 50px minmax(0, 1fr); }
   .lesson-navigator--collapsed { padding-top: 7px; }
   .navigator-toggle { width: 40px; min-width: 40px; height: 40px; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .panel-heading,
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-page-control,
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-analysis-control,
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-file-action { flex: none; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-document {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .lesson-navigator:not(.lesson-navigator--collapsed) .navigator-content-blocks {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
   .content-open-button .content-block-title {
     display: -webkit-box;
     overflow: hidden;
@@ -1717,9 +1746,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .history-controls { flex: none; }
   .annotation-toolbar-controls { display: flex; width: max-content; }
   .toolbar-duplicate-group { display: none; }
-  .toolbar-width-micro,
-  .history-action--undo,
-  .history-action--redo { display: none; }
+  .toolbar-width-micro { display: none; }
   .toolbar-mode-controls,
   .tool-button-group,
   .color-controls,
@@ -1731,6 +1758,20 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .history-controls button { min-height: 38px; padding-inline: 6px; font-size: 10px; }
   .color-button,
   .custom-color-button { width: 28px; height: 28px; }
+  .history-action--undo,
+  .history-action--redo { width: 40px; min-width: 40px; padding: 0; border-radius: 50%; }
+  .history-action-text { display: none; }
+  .tablet-history-icon {
+    display: block;
+    width: 21px;
+    height: 21px;
+    margin: auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
 }
 
 @media (max-width: 767px) {

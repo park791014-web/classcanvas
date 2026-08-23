@@ -116,8 +116,18 @@ export function ToolBar({
         {renderModeControls('오른쪽')}
       </div>
       <div className="history-controls" aria-label="판서 기록 제어">
-        <button type="button" className="history-action history-action--undo" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="판서 실행 취소">실행 취소</button>
-        <button type="button" className="history-action history-action--redo" disabled={!hasDocument || !canRedo} onClick={onRedo} aria-label="판서 다시 실행">다시 실행</button>
+        <button type="button" className="history-action history-action--undo" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="실행 취소" title="실행 취소">
+          <svg className="tablet-history-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 7H4v-5M4.5 6.5A9 9 0 1 1 3 15" />
+          </svg>
+          <span className="history-action-text">실행 취소</span>
+        </button>
+        <button type="button" className="history-action history-action--redo" disabled={!hasDocument || !canRedo} onClick={onRedo} aria-label="다시 실행" title="다시 실행">
+          <svg className="tablet-history-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 7h5v-5m-.5 4.5A9 9 0 1 0 21 15" />
+          </svg>
+          <span className="history-action-text">다시 실행</span>
+        </button>
         <button type="button" className={`history-action history-action--visibility${!isVisible ? ' is-active' : ''}`} disabled={!hasDocument} aria-pressed={!isVisible} onClick={onToggleVisibility}>
           {isVisible ? '판서 숨기기' : '판서 보이기'}
         </button>
