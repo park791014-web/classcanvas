@@ -69,6 +69,8 @@ button, input, textarea, select { font: inherit; }
   border-radius: 50%;
 }
 
+.tablet-zoom-controls { display: none; }
+
 .lesson-layout {
   position: relative;
   display: grid;
@@ -572,6 +574,7 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   background: #e8edf3;
   scrollbar-color: #a9b4c4 #e8edf3;
 }
+.pdf-scroll-viewport.is-pinch-enabled { touch-action: none; }
 
 .pdf-coordinate-space {
   position: relative;
@@ -1664,14 +1667,30 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .material-status { font-size: 11px; }
   .material-status .file-button { max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .topbar-zoom-controls { gap: 2px; }
+  .topbar-zoom-controls > button:not(.fit-mode-button),
+  .topbar-zoom-controls > output { display: none; }
   .topbar-zoom-controls button { min-width: 32px; height: 34px; padding-inline: 5px; font-size: 10px; }
   .topbar-zoom-controls .fit-mode-button { min-width: 62px; }
-  .topbar-zoom-controls output { min-width: 42px; font-size: 11px; }
   .topbar-page-controls { gap: 3px; }
   .topbar-page-controls button { min-width: 34px; height: 34px; }
   .topbar-page-controls output { min-width: 42px; font-size: 11px; }
+  .tablet-zoom-controls { display: inline-flex; align-items: center; margin-left: 3px; padding-left: 5px; gap: 2px; border-left: 1px solid #52617a; }
+  .tablet-zoom-controls button { min-width: 34px; height: 34px; padding: 2px 7px; }
+  .tablet-zoom-controls output { min-width: 42px; color: #e5ebf4; font-size: 10px; text-align: center; }
 
-  .lesson-layout { grid-template-columns: 200px minmax(0, 1fr); padding: 8px; gap: 8px; overflow: hidden; }
+  .lesson-layout,
+  .lesson-layout.is-sidebar-collapsed { grid-template-columns: 56px minmax(0, 1fr); padding: 8px; gap: 8px; overflow: hidden; }
+  .lesson-navigator:not(.lesson-navigator--collapsed) {
+    z-index: 30;
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 8px;
+    display: flex;
+    width: 160px;
+    min-height: 0;
+    box-shadow: 10px 0 30px rgb(15 23 42 / 22%);
+  }
   .lesson-layout.is-sidebar-collapsed { grid-template-columns: 56px minmax(0, 1fr); }
   .lesson-navigator--collapsed { padding-top: 7px; }
   .navigator-toggle { width: 40px; min-width: 40px; height: 40px; }
@@ -1698,6 +1717,9 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .history-controls { flex: none; }
   .annotation-toolbar-controls { display: flex; width: max-content; }
   .toolbar-duplicate-group { display: none; }
+  .toolbar-width-micro,
+  .history-action--undo,
+  .history-action--redo { display: none; }
   .toolbar-mode-controls,
   .tool-button-group,
   .color-controls,

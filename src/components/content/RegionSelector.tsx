@@ -45,6 +45,7 @@ function regionStyle(region: SourceRegion) {
 
 export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlockId, onSave }: RegionSelectorProps) {
   const surfaceRef = useRef<HTMLDivElement>(null)
+  const draftOutlineRef = useRef<HTMLDivElement>(null)
   const savePanelRef = useRef<HTMLFormElement>(null)
   const pointerIdRef = useRef<number | null>(null)
   const startRef = useRef<NormalizedPosition | null>(null)
@@ -68,21 +69,21 @@ export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlock
   }, [active])
 
   const positionSavePanel = useCallback(() => {
-    const layer = surfaceRef.current
+    const selectionOutline = draftOutlineRef.current
     const panel = savePanelRef.current
-    if (!draftRegion || !layer || !panel) return
+    if (!draftRegion || !selectionOutline || !panel) return
 
-    const layerBounds = layer.getBoundingClientRect()
+    const selectionBounds = selectionOutline.getBoundingClientRect()
     const panelBounds = panel.getBoundingClientRect()
     const visualViewport = window.visualViewport
     const viewportLeft = visualViewport?.offsetLeft ?? 0
     const viewportTop = visualViewport?.offsetTop ?? 0
     const viewportRight = viewportLeft + (visualViewport?.width ?? window.innerWidth)
     const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight)
-    const selectionLeft = layerBounds.left + draftRegion.x * layerBounds.width
-    const selectionTop = layerBounds.top + draftRegion.y * layerBounds.height
-    const selectionRight = selectionLeft + draftRegion.width * layerBounds.width
-    const selectionBottom = selectionTop + draftRegion.height * layerBounds.height
+    const selectionLeft = selectionBounds.left
+    const selectionTop = selectionBounds.top
+    const selectionRight = selectionBounds.right
+    const selectionBottom = selectionBounds.bottom
     const panelWidth = panelBounds.width
     const panelHeight = panelBounds.height
     const clampLeft = (value: number) => Math.min(
@@ -94,24 +95,27 @@ export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlock
       Math.max(viewportTop + VIEWPORT_PADDING, value),
     )
 
-    let left = clampLeft(selectionLeft + (selectionRight - selectionLeft - panelWidth) / 2)
-    let top = selectionBottom + PANEL_GAP
+    const centeredLeft = clampLeft(selectionLeft + (selectionBounds.width - panelWidth) / 2)
+    const centeredTop = clampTop(selectionTop + (selectionBounds.height - panelHeight) / 2)
+    const belowTop = selectionBottom + PANEL_GAP
+    const aboveTop = selectionTop - panelHeight - PANEL_GAP
+    const rightLeft = selectionRight + PANEL_GAP
+    const leftLeft = selectionLeft - panelWidth - PANEL_GAP
+    let left = centeredLeft
+    let top = belowTop
 
-    if (top + panelHeight > viewportBottom - VIEWPORT_PADDING) {
-      const rightCandidate = selectionRight + PANEL_GAP
-      if (rightCandidate + panelWidth <= viewportRight - VIEWPORT_PADDING) {
-        left = rightCandidate
-        top = clampTop(selectionTop + (selectionBottom - selectionTop - panelHeight) / 2)
-      } else {
-        const aboveCandidate = selectionTop - panelHeight - PANEL_GAP
-        if (aboveCandidate >= viewportTop + VIEWPORT_PADDING) {
-          top = aboveCandidate
-        } else {
-          const leftCandidate = selectionLeft - panelWidth - PANEL_GAP
-          left = leftCandidate >= viewportLeft + VIEWPORT_PADDING ? leftCandidate : clampLeft(left)
-          top = clampTop(selectionTop + (selectionBottom - selectionTop - panelHeight) / 2)
-        }
-      }
+    if (belowTop + panelHeight <= viewportBottom - VIEWPORT_PADDING) {
+      top = belowTop
+    } else if (aboveTop >= viewportTop + VIEWPORT_PADDING) {
+      top = aboveTop
+    } else if (rightLeft + panelWidth <= viewportRight - VIEWPORT_PADDING) {
+      left = rightLeft
+      top = centeredTop
+    } else if (leftLeft >= viewportLeft + VIEWPORT_PADDING) {
+      left = leftLeft
+      top = centeredTop
+    } else {
+      top = clampTop(belowTop)
     }
 
     setSavePanelPosition({ left: clampLeft(left), top: clampTop(top) })
@@ -234,7 +238,7 @@ export function RegionSelector({ active, defaultTitles, savedBlocks, activeBlock
         />
       )}
 
-      {draftRegion && <div className="draft-region-outline" style={regionStyle(draftRegion)} aria-hidden="true" />}
+      {draftRegion && <div ref={draftOutlineRef} className="draft-region-outline" style={regionStyle(draftRegion)} aria-hidden="true" />}
 
       {active && draftRegion && draftRegion.width > 0 && draftRegion.height > 0 && pointerIdRef.current === null && createPortal((
         <form

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import type { AnnotationSettings, AnnotationTool, DrawingStyle, DrawingTool, StrokeWidthPreset } from '../../types/annotation'
 
 interface ToolBarProps {
@@ -55,9 +55,10 @@ export function ToolBar({
   isWhiteboard,
   onToggleWhiteboard,
 }: ToolBarProps) {
-  const [customColor, setCustomColor] = useState('#7c3aed')
   const drawingTool = activeTool === 'pen' || activeTool === 'highlighter' ? activeTool : null
   const drawingStyle = drawingTool ? settings[drawingTool] : null
+  const pickerColor = drawingStyle?.color ?? settings.pen.color
+  const isPresetColor = COLORS.some((color) => color.value === drawingStyle?.color)
 
   const renderModeControls = (position: '왼쪽' | '오른쪽') => (
     <div className={`toolbar-mode-controls${position === '오른쪽' ? ' toolbar-duplicate-group' : ''}`} aria-label={`${position} 수업 화면 모드`}>
@@ -96,16 +97,16 @@ export function ToolBar({
               style={{ '--swatch-color': color.value } as CSSProperties} aria-label={`${color.label} 색상`} aria-pressed={drawingStyle?.color === color.value}
               disabled={!hasDocument || !drawingTool || !isVisible} onClick={() => drawingTool && onStyleChange(drawingTool, { color: color.value })} />
           ))}
-          <label className={`custom-color-button${drawingStyle?.color === customColor ? ' is-active' : ''}`} title="사용자 지정 색상">
+          <label className={`custom-color-button${drawingStyle && !isPresetColor ? ' is-active' : ''}`} title="사용자 지정 색상">
             <span aria-hidden="true">＋</span>
-            <input type="color" value={customColor} disabled={!hasDocument || !drawingTool || !isVisible} aria-label="사용자 지정 색상 선택"
-              onChange={(event) => { setCustomColor(event.target.value); if (drawingTool) onStyleChange(drawingTool, { color: event.target.value }) }} />
+            <input type="color" value={pickerColor} disabled={!hasDocument || !drawingTool || !isVisible} aria-label="사용자 지정 색상 선택"
+              onChange={(event) => { if (drawingTool) onStyleChange(drawingTool, { color: event.target.value }) }} />
           </label>
         </div>
 
         <div className="width-controls" aria-label="선 굵기">
           {WIDTHS.map((width) => (
-            <button type="button" key={width.value} className={drawingStyle?.widthPreset === width.value ? 'is-active' : undefined}
+            <button type="button" key={width.value} className={`${drawingStyle?.widthPreset === width.value ? 'is-active ' : ''}toolbar-width-${width.value}`.trim()}
               aria-pressed={drawingStyle?.widthPreset === width.value} disabled={!hasDocument || !drawingTool || !isVisible}
               onClick={() => drawingTool && onStyleChange(drawingTool, { widthPreset: width.value })}>{width.label}</button>
           ))}
@@ -115,9 +116,9 @@ export function ToolBar({
         {renderModeControls('오른쪽')}
       </div>
       <div className="history-controls" aria-label="판서 기록 제어">
-        <button type="button" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="판서 실행 취소">실행 취소</button>
-        <button type="button" disabled={!hasDocument || !canRedo} onClick={onRedo} aria-label="판서 다시 실행">다시 실행</button>
-        <button type="button" className={!isVisible ? 'is-active' : undefined} disabled={!hasDocument} aria-pressed={!isVisible} onClick={onToggleVisibility}>
+        <button type="button" className="history-action history-action--undo" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="판서 실행 취소">실행 취소</button>
+        <button type="button" className="history-action history-action--redo" disabled={!hasDocument || !canRedo} onClick={onRedo} aria-label="판서 다시 실행">다시 실행</button>
+        <button type="button" className={`history-action history-action--visibility${!isVisible ? ' is-active' : ''}`} disabled={!hasDocument} aria-pressed={!isVisible} onClick={onToggleVisibility}>
           {isVisible ? '판서 숨기기' : '판서 보이기'}
         </button>
       </div>

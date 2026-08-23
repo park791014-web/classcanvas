@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PdfFileButton } from '../pdf/PdfFileButton'
 import { PdfPageCanvas } from '../pdf/PdfPageCanvas'
 import { AnnotationCanvas } from '../annotation/AnnotationCanvas'
@@ -38,6 +38,16 @@ interface LessonWorkspaceProps {
 
 const FIT_EDGE_GAP = 2
 
+interface PinchGestureState {
+  pointers: Map<number, { x: number; y: number }>
+  initialDistance: number
+  initialScale: number
+}
+
+function pointerDistance(points: { x: number; y: number }[]) {
+  return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y)
+}
+
 export function LessonWorkspace({
   loadedPdf,
   documentState,
@@ -70,6 +80,7 @@ export function LessonWorkspace({
   const [isRendering, setIsRendering] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
   const previousPageRef = useRef<number | null>(null)
+  const pinchGestureRef = useRef<PinchGestureState>({ pointers: new Map(), initialDistance: 0, initialScale: 1 })
 
   const handleRenderStateChange = useCallback((rendering: boolean, nextError?: string) => {
     setIsRendering(rendering)
@@ -124,6 +135,43 @@ export function LessonWorkspace({
   }, [activeAnalysisCandidate, activeContentBlock, coordinateSpace, documentState, pageMetrics, viewportElement])
 
   const hasDocument = Boolean(loadedPdf && documentState)
+  const pinchEnabled = hasDocument && annotationTool === 'none'
+
+  const handlePinchPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pinchEnabled || event.pointerType !== 'touch' || !documentState) return
+    const gesture = pinchGestureRef.current
+    event.currentTarget.setPointerCapture(event.pointerId)
+    gesture.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    event.preventDefault()
+    if (gesture.pointers.size === 2) {
+      gesture.initialDistance = pointerDistance([...gesture.pointers.values()])
+      gesture.initialScale = documentState.scale
+    }
+  }
+
+  const handlePinchPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const gesture = pinchGestureRef.current
+    const previousPoint = gesture.pointers.get(event.pointerId)
+    if (!pinchEnabled || event.pointerType !== 'touch' || !previousPoint) return
+    gesture.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    event.preventDefault()
+    if (gesture.pointers.size === 1) {
+      event.currentTarget.scrollLeft += previousPoint.x - event.clientX
+      event.currentTarget.scrollTop += previousPoint.y - event.clientY
+      return
+    }
+    if (gesture.pointers.size !== 2 || gesture.initialDistance <= 0) return
+    const nextDistance = pointerDistance([...gesture.pointers.values()])
+    onScaleChange(Number((gesture.initialScale * nextDistance / gesture.initialDistance).toFixed(3)), 'manual')
+  }
+
+  const finishPinchPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'touch') return
+    const gesture = pinchGestureRef.current
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    gesture.pointers.delete(event.pointerId)
+    if (gesture.pointers.size < 2) gesture.initialDistance = 0
+  }
   const annotationMetrics = documentState && pageMetrics
     && pageMetrics.pageNumber === documentState.currentPage
     && Math.abs(pageMetrics.scale - documentState.scale) < 0.005
@@ -149,7 +197,15 @@ export function LessonWorkspace({
             </div>
           )}
 
-          <div className="pdf-scroll-viewport" ref={setViewportElement} aria-busy={isRendering}>
+          <div
+            className={`pdf-scroll-viewport${pinchEnabled ? ' is-pinch-enabled' : ''}`}
+            ref={setViewportElement}
+            aria-busy={isRendering}
+            onPointerDown={handlePinchPointerDown}
+            onPointerMove={handlePinchPointerMove}
+            onPointerUp={finishPinchPointer}
+            onPointerCancel={finishPinchPointer}
+          >
             <div
               className="pdf-coordinate-space"
               ref={setCoordinateSpace}
