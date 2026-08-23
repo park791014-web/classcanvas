@@ -204,9 +204,6 @@ export function LessonNavigator({
               </div>
             ))}
           </section>
-          <footer className="navigator-file-action" aria-label="LessonCanvas 제작자 정보">
-            <span>© 2026 LessonCanvas · Designed by Mordenai</span>
-          </footer>
         </div>
       ) : (
         <div className="navigator-empty-state">
@@ -216,6 +213,9 @@ export function LessonNavigator({
           {status !== 'loading' && <PdfFileButton label="PDF 불러오기" onFileSelected={onFileSelected} />}
         </div>
       )}
+      <footer className="navigator-file-action" aria-label="LessonCanvas 제작자 정보">
+        <span>© 2026 LessonCanvas · Designed by Mordenai</span>
+      </footer>
     </aside>
   )
 }
