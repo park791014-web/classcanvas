@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnalysisReviewPanel } from './components/analysis/AnalysisReviewPanel'
 import { ContentFocusView } from './components/content/ContentFocusView'
+import { LayoutDebugPanel } from './components/debug/LayoutDebugPanel'
 import { ProblemFocusView } from './components/content/ProblemFocusView'
 import { LessonNavigator } from './components/layout/LessonNavigator'
 import { LessonWorkspace } from './components/layout/LessonWorkspace'
@@ -559,6 +560,7 @@ function App() {
         isWhiteboard={workspaceMode === 'whiteboard'}
         onToggleWhiteboard={toggleWhiteboard}
       />
+      <LayoutDebugPanel />
     </div>
   )
 }

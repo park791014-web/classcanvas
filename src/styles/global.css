@@ -1880,3 +1880,25 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   .content-split-ratio-controls button { min-width: 42px; min-height: 42px; }
   .content-split-divider::before { inset: -10px; }
 }
+
+.layout-debug-panel {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  z-index: 10000;
+  display: grid;
+  width: min(310px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid rgb(148 163 184 / 55%);
+  border-radius: 6px;
+  background: rgb(15 23 42 / 94%);
+  box-shadow: 0 4px 16px rgb(15 23 42 / 24%);
+  color: #f8fafc;
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+  pointer-events: auto;
+}
+
+.layout-debug-panel strong,
+.layout-debug-panel b { color: #fde68a; }
