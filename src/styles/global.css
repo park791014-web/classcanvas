@@ -1765,8 +1765,8 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    min-width: 52px;
+    width: 46px;
+    min-width: 46px;
     height: 40px;
     padding-inline: 6px;
   }
@@ -1998,8 +1998,8 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    min-width: 52px;
+    width: 46px;
+    min-width: 46px;
     height: 40px;
     padding-inline: 6px;
   }
@@ -2090,8 +2090,8 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 52px;
-    min-width: 52px;
+    width: 46px;
+    min-width: 46px;
     height: 40px;
     padding-inline: 6px;
   }
