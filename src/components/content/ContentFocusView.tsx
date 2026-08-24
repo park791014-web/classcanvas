@@ -12,6 +12,7 @@ import { ContentSourcePane } from './ContentSourcePane'
 import { ResizableSplit } from './ResizableSplit'
 import { HorizontalWritingWorkspace } from './HorizontalWritingWorkspace'
 import { ContentCanvasZoomControls } from './ContentCanvasZoomControls'
+import { UnifiedSplitAnnotationInput } from './UnifiedSplitAnnotationInput'
 
 export interface ContentAnnotationSurface {
   strokes: AnnotationStroke[]
@@ -79,6 +80,9 @@ export function ContentFocusView({
   viewMode, onViewModeChange, workspaceState, onWorkspaceStateChange,
 }: ContentFocusViewProps) {
   const sourceActive = activeSurface === 'source'
+  const usesUnifiedSplitInput = sourceAnnotations.activeTool === 'pen' || sourceAnnotations.activeTool === 'highlighter'
+  const sourceRenderAnnotations = usesUnifiedSplitInput ? { ...sourceAnnotations, activeTool: 'none' as const } : sourceAnnotations
+  const notesRenderAnnotations = usesUnifiedSplitInput ? { ...notesAnnotations, activeTool: 'none' as const } : notesAnnotations
 
   return (
     <section className="content-focus-view" aria-labelledby="content-focus-title">
@@ -114,21 +118,25 @@ export function ContentFocusView({
             onRatioChange={(ratio) => onWorkspaceStateChange(viewMode === 'vertical' ? { verticalRatio: ratio } : { horizontalRatio: ratio })}
             label={viewMode === 'vertical' ? '상하 영역 크기 조절' : '좌우 영역 크기 조절'}
             source={(
-              <ContentSourcePane loadedPdf={loadedPdf} block={block} orientation={viewMode} annotation={sourceAnnotations}
+              <ContentSourcePane loadedPdf={loadedPdf} block={block} orientation={viewMode} annotation={sourceRenderAnnotations}
                 active={sourceActive} onActivate={() => onActiveSurfaceChange('source')} />
             )}
             writing={viewMode === 'horizontal' ? (
               <HorizontalWritingWorkspace
                 title={block.title}
-                annotation={notesAnnotations}
+                annotation={notesRenderAnnotations}
                 coordinateMode="problem-logical-y"
                 workspaceHeight={CONTENT_NOTES_LOGICAL_HEIGHT}
                 active={activeSurface === 'notes'}
                 onActivate={() => onActiveSurfaceChange('notes')}
               />
             ) : (
-              <NotesSurface annotation={notesAnnotations} active={activeSurface === 'notes'} title={block.title} onActivate={() => onActiveSurfaceChange('notes')} />
+              <NotesSurface annotation={notesRenderAnnotations} active={activeSurface === 'notes'} title={block.title} onActivate={() => onActiveSurfaceChange('notes')} />
             )}
+            overlay={usesUnifiedSplitInput ? (
+              <UnifiedSplitAnnotationInput orientation={viewMode} title={block.title} source={sourceAnnotations} writing={notesAnnotations}
+                onActiveSurfaceChange={onActiveSurfaceChange} />
+            ) : undefined}
           />
         </div>
       )}

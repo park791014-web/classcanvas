@@ -23,6 +23,7 @@ export function usePointerInteractionReset(reset: () => void) {
     return () => {
       window.removeEventListener('blur', handleBlur)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      resetRef.current()
     }
   }, [])
 }

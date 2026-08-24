@@ -7,6 +7,7 @@ interface ResizableSplitProps {
   onRatioChange: (ratio: number) => void
   source: ReactNode
   writing: ReactNode
+  overlay?: ReactNode
   label: string
 }
 
@@ -18,7 +19,7 @@ function clampRatio(value: number) {
   return Math.min(MAX_SOURCE_RATIO, Math.max(MIN_SOURCE_RATIO, value))
 }
 
-export function ResizableSplit({ orientation, ratio, onRatioChange, source, writing, label }: ResizableSplitProps) {
+export function ResizableSplit({ orientation, ratio, onRatioChange, source, writing, overlay, label }: ResizableSplitProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activePointerRef = useRef<number | null>(null)
   const captureTargetRef = useRef<HTMLButtonElement | null>(null)
@@ -83,6 +84,8 @@ export function ResizableSplit({ orientation, ratio, onRatioChange, source, writ
             onPointerDown={(event) => { event.preventDefault(); event.stopPropagation() }}
             onClick={(event) => { event.stopPropagation(); onRatioChange(clampRatio(ratio - BUTTON_RATIO_STEP)) }}>−</button>
         </div>
+      </div>
+      <div className="content-split-divider">
         <button
           type="button"
           className="content-split-drag-handle"
@@ -106,11 +109,8 @@ export function ResizableSplit({ orientation, ratio, onRatioChange, source, writ
           <span aria-hidden="true">{orientation === 'vertical' ? '══' : '║'}</span>
         </button>
       </div>
-      <div
-        className="content-split-divider"
-        aria-hidden="true"
-      />
       <div className="content-split-pane content-split-writing">{writing}</div>
+      {overlay}
     </div>
   )
 }
