@@ -1,9 +1,10 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent, type UIEvent } from 'react'
+import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent, type UIEvent } from 'react'
 import { TiledAnnotationCanvas } from '../annotation/TiledAnnotationCanvas'
 import { CLASSROOM_STROKE_WIDTH_REFERENCE } from '../annotation/annotationSizing'
 import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationCoordinateMode } from '../../types/annotation'
 import type { ContentAnnotationSurface } from './ContentFocusView'
+import { safelyReleasePointerCapture, usePointerInteractionReset } from '../../hooks/usePointerInteractionReset'
 
 interface HorizontalWritingWorkspaceProps {
   title: string
@@ -33,6 +34,7 @@ export function HorizontalWritingWorkspace({
   const [scrollPosition, setScrollPosition] = useState({ left: 0, top: 0 })
   const panPointerRef = useRef<number | null>(null)
   const panStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
+  const captureTargetRef = useRef<HTMLDivElement | null>(null)
   const viewportSize = useElementSize(viewport)
   const worldHeight = Math.max(MIN_HORIZONTAL_WORLD_HEIGHT, workspaceHeight)
   const offsetX = (HORIZONTAL_WORLD_WIDTH - viewportSize.width) / 2 - scrollPosition.left
@@ -40,6 +42,17 @@ export function HorizontalWritingWorkspace({
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     setScrollPosition({ left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop })
   }
+
+  const resetPointerInteractionState = useCallback(() => {
+    const pointerId = panPointerRef.current
+    const captureTarget = captureTargetRef.current
+    panPointerRef.current = null
+    panStartRef.current = null
+    captureTargetRef.current = null
+    safelyReleasePointerCapture(captureTarget, pointerId)
+  }, [])
+
+  usePointerInteractionReset(resetPointerInteractionState)
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (annotation.activeTool !== 'none' || event.button !== 0) return
@@ -49,8 +62,10 @@ export function HorizontalWritingWorkspace({
     if ((verticalScrollbarWidth > 0 && event.clientX >= bounds.right - verticalScrollbarWidth)
       || (horizontalScrollbarHeight > 0 && event.clientY >= bounds.bottom - horizontalScrollbarHeight)) return
     event.preventDefault()
+    if (panPointerRef.current !== null) resetPointerInteractionState()
     event.currentTarget.setPointerCapture(event.pointerId)
     panPointerRef.current = event.pointerId
+    captureTargetRef.current = event.currentTarget
     panStartRef.current = {
       x: event.clientX,
       y: event.clientY,
@@ -69,16 +84,15 @@ export function HorizontalWritingWorkspace({
 
   const finishPan = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (panPointerRef.current !== event.pointerId) return
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-    panPointerRef.current = null
-    panStartRef.current = null
+    resetPointerInteractionState()
   }
 
   return (
     <section className={`horizontal-writing-workspace${active ? ' is-active' : ''}`} aria-label={`${title} 확장 판서 공간`}>
       <div ref={setViewport} className={`horizontal-writing-scroll${annotation.activeTool === 'none' ? ' is-pannable' : ''}`}
         tabIndex={0} onScroll={handleScroll} onPointerDownCapture={handlePointerDown} onPointerMove={handlePointerMove}
-        onPointerUp={finishPan} onPointerCancel={finishPan} onLostPointerCapture={finishPan}>
+        onPointerUp={finishPan} onPointerCancel={finishPan} onLostPointerCapture={finishPan}
+        onDoubleClick={(event) => event.preventDefault()}>
         <div
           className="horizontal-writing-world"
           style={{ width: HORIZONTAL_WORLD_WIDTH, height: worldHeight }}

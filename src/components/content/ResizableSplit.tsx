@@ -1,4 +1,5 @@
-import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useCallback, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { safelyReleasePointerCapture, usePointerInteractionReset } from '../../hooks/usePointerInteractionReset'
 
 interface ResizableSplitProps {
   orientation: 'vertical' | 'horizontal'
@@ -20,35 +21,50 @@ function clampRatio(value: number) {
 export function ResizableSplit({ orientation, ratio, onRatioChange, source, writing, label }: ResizableSplitProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activePointerRef = useRef<number | null>(null)
+  const captureTargetRef = useRef<HTMLButtonElement | null>(null)
+  const dragStartRef = useRef<{ coordinate: number; ratio: number } | null>(null)
 
-  const updateFromPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const updateFromPointer = (event: ReactPointerEvent<HTMLElement>) => {
     const bounds = containerRef.current?.getBoundingClientRect()
-    if (!bounds) return
-    const next = orientation === 'vertical'
-      ? (event.clientY - bounds.top) / bounds.height
-      : (event.clientX - bounds.left) / bounds.width
+    const start = dragStartRef.current
+    if (!bounds || !start) return
+    const coordinate = orientation === 'vertical' ? event.clientY : event.clientX
+    const dimension = orientation === 'vertical' ? bounds.height : bounds.width
+    const next = start.ratio + (coordinate - start.coordinate) / Math.max(1, dimension)
     onRatioChange(clampRatio(next))
   }
 
-  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const resetPointerInteractionState = useCallback(() => {
+    const pointerId = activePointerRef.current
+    const captureTarget = captureTargetRef.current
+    activePointerRef.current = null
+    captureTargetRef.current = null
+    dragStartRef.current = null
+    safelyReleasePointerCapture(captureTarget, pointerId)
+  }, [])
+
+  usePointerInteractionReset(resetPointerInteractionState)
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return
     event.preventDefault()
     event.stopPropagation()
+    resetPointerInteractionState()
     activePointerRef.current = event.pointerId
+    captureTargetRef.current = event.currentTarget
+    dragStartRef.current = { coordinate: orientation === 'vertical' ? event.clientY : event.clientX, ratio }
     event.currentTarget.setPointerCapture(event.pointerId)
-    updateFromPointer(event)
   }
 
-  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const handlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (activePointerRef.current !== event.pointerId) return
     event.preventDefault()
     updateFromPointer(event)
   }
 
-  const finishPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const finishPointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (activePointerRef.current !== event.pointerId) return
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-    activePointerRef.current = null
+    resetPointerInteractionState()
   }
 
   return (
@@ -57,8 +73,8 @@ export function ResizableSplit({ orientation, ratio, onRatioChange, source, writ
       className={`resizable-content-split resizable-content-split--${orientation}`}
       style={{ '--source-ratio': ratio } as CSSProperties}
     >
-      <div className="content-split-pane content-split-source">
-        {source}
+      <div className="content-split-pane content-split-source">{source}</div>
+      <div className={`content-split-controls content-split-controls--${orientation}`} aria-label="원문 영역 크기 조절">
         <div className="content-split-ratio-controls" aria-label="원문 영역 비율 미세 조절">
           <button type="button" aria-label="원문 영역 5% 늘리기" disabled={ratio >= MAX_SOURCE_RATIO}
             onPointerDown={(event) => { event.preventDefault(); event.stopPropagation() }}
@@ -67,25 +83,32 @@ export function ResizableSplit({ orientation, ratio, onRatioChange, source, writ
             onPointerDown={(event) => { event.preventDefault(); event.stopPropagation() }}
             onClick={(event) => { event.stopPropagation(); onRatioChange(clampRatio(ratio - BUTTON_RATIO_STEP)) }}>−</button>
         </div>
+        <button
+          type="button"
+          className="content-split-drag-handle"
+          role="separator"
+          aria-label={label}
+          aria-orientation={orientation === 'vertical' ? 'horizontal' : 'vertical'}
+          aria-valuemin={20}
+          aria-valuemax={65}
+          aria-valuenow={Math.round(ratio * 100)}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishPointer}
+          onPointerCancel={finishPointer}
+          onLostPointerCapture={finishPointer}
+          onKeyDown={(event) => {
+            const delta = 0.03
+            if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') { event.preventDefault(); onRatioChange(clampRatio(ratio - delta)) }
+            if (event.key === 'ArrowDown' || event.key === 'ArrowRight') { event.preventDefault(); onRatioChange(clampRatio(ratio + delta)) }
+          }}
+        >
+          <span aria-hidden="true">{orientation === 'vertical' ? '══' : '║'}</span>
+        </button>
       </div>
       <div
         className="content-split-divider"
-        role="separator"
-        aria-label={label}
-        aria-orientation={orientation === 'vertical' ? 'horizontal' : 'vertical'}
-        aria-valuemin={20}
-        aria-valuemax={65}
-        aria-valuenow={Math.round(ratio * 100)}
-        tabIndex={0}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={finishPointer}
-        onPointerCancel={finishPointer}
-        onKeyDown={(event) => {
-          const delta = 0.03
-          if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') { event.preventDefault(); onRatioChange(clampRatio(ratio - delta)) }
-          if (event.key === 'ArrowDown' || event.key === 'ArrowRight') { event.preventDefault(); onRatioChange(clampRatio(ratio + delta)) }
-        }}
+        aria-hidden="true"
       />
       <div className="content-split-pane content-split-writing">{writing}</div>
     </div>

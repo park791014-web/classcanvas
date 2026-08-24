@@ -8,6 +8,7 @@ import type {
   DrawingTool,
   StrokeWidthPreset,
 } from '../../types/annotation'
+import { safelyReleasePointerCapture, usePointerInteractionReset } from '../../hooks/usePointerInteractionReset'
 
 interface TiledAnnotationCanvasProps {
   worldWidth: number
@@ -157,6 +158,7 @@ export function TiledAnnotationCanvas({
   const activePointerRef = useRef<number | null>(null)
   const activeStrokeRef = useRef<AnnotationStroke | null>(null)
   const erasedIdsRef = useRef(new Set<string>())
+  const captureTargetRef = useRef<HTMLDivElement | null>(null)
   const strokesRef = useRef(strokes)
   strokesRef.current = strokes
 
@@ -227,12 +229,31 @@ export function TiledAnnotationCanvas({
     redraw(null, erasedIdsRef.current)
   }, [coordinateMode, redraw, strokeWidthReference, worldHeight, worldWidth])
 
+  const resetPointerInteractionState = useCallback((commit = false) => {
+    const pointerId = activePointerRef.current
+    const stroke = activeStrokeRef.current
+    const erasedIds = [...erasedIdsRef.current]
+    activePointerRef.current = null
+    activeStrokeRef.current = null
+    erasedIdsRef.current.clear()
+    safelyReleasePointerCapture(captureTargetRef.current, pointerId)
+    captureTargetRef.current = null
+    if (commit) {
+      if (stroke) onAddStroke(stroke)
+      else if (erasedIds.length > 0) onEraseStrokes(erasedIds)
+    } else redraw()
+  }, [onAddStroke, onEraseStrokes, redraw])
+
+  usePointerInteractionReset(resetPointerInteractionState)
+
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!isVisible || event.button !== 0 || (activeTool !== 'pen' && activeTool !== 'highlighter' && activeTool !== 'eraser')) return
     event.preventDefault()
     event.stopPropagation()
+    if (activePointerRef.current !== null) resetPointerInteractionState(false)
     event.currentTarget.setPointerCapture(event.pointerId)
     activePointerRef.current = event.pointerId
+    captureTargetRef.current = event.currentTarget
     const point = toAnnotationPoint(event)
     if (activeTool === 'eraser') {
       erasedIdsRef.current.clear()
@@ -268,15 +289,7 @@ export function TiledAnnotationCanvas({
 
   const finishPointer = (event: ReactPointerEvent<HTMLDivElement>, commit: boolean) => {
     if (activePointerRef.current !== event.pointerId) return
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-    if (commit) {
-      if (activeTool === 'eraser') onEraseStrokes([...erasedIdsRef.current])
-      else if (activeStrokeRef.current) onAddStroke(activeStrokeRef.current)
-    }
-    activePointerRef.current = null
-    activeStrokeRef.current = null
-    erasedIdsRef.current.clear()
-    redraw()
+    resetPointerInteractionState(commit)
   }
 
   const interactive = isVisible && ['pen', 'highlighter', 'eraser'].includes(activeTool)
@@ -291,6 +304,8 @@ export function TiledAnnotationCanvas({
       onPointerMove={handlePointerMove}
       onPointerUp={(event) => finishPointer(event, true)}
       onPointerCancel={(event) => finishPointer(event, false)}
+      onLostPointerCapture={(event) => finishPointer(event, false)}
+      onDoubleClick={(event) => event.preventDefault()}
     >
       {visibleTiles.map((tile) => (
         <canvas

@@ -8,6 +8,7 @@ import type { ContentBlock, ContentWorkspaceState } from '../../types/content'
 import type { LoadedPdfDocument, PdfViewportMetrics } from '../../types/pdf'
 import type { ContentAnnotationSurface } from './ContentFocusView'
 import { ContentCropCanvas } from './ProblemCropCanvas'
+import { safelyReleasePointerCapture, usePointerInteractionReset } from '../../hooks/usePointerInteractionReset'
 
 interface CanvasContentWorkspaceProps {
   loadedPdf: LoadedPdfDocument
@@ -46,6 +47,7 @@ export function CanvasContentWorkspace({
   const viewportSize = useElementSize(viewportElement)
   const panPointerRef = useRef<number | null>(null)
   const panStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
+  const captureTargetRef = useRef<HTMLDivElement | null>(null)
   const worldHeight = Math.max(MIN_WORLD_HEIGHT, workspaceHeight + 1200, SOURCE_TOP + (sourceMetrics?.height ?? 0) + 1800)
 
   const clampOffset = useCallback((offsetX: number, offsetY: number) => {
@@ -59,12 +61,25 @@ export function CanvasContentWorkspace({
     }
   }, [state.canvasScale, viewportSize.height, viewportSize.width, worldHeight])
 
+  const resetPointerInteractionState = useCallback(() => {
+    const pointerId = panPointerRef.current
+    const captureTarget = captureTargetRef.current
+    panPointerRef.current = null
+    panStartRef.current = null
+    captureTargetRef.current = null
+    safelyReleasePointerCapture(captureTarget, pointerId)
+  }, [])
+
+  usePointerInteractionReset(resetPointerInteractionState)
+
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const canPan = workspaceAnnotations.activeTool === 'none' || event.button === 1
     if (!canPan) return
     event.preventDefault()
+    if (panPointerRef.current !== null) resetPointerInteractionState()
     panPointerRef.current = event.pointerId
     panStartRef.current = { x: event.clientX, y: event.clientY, offsetX: state.canvasOffsetX, offsetY: state.canvasOffsetY }
+    captureTargetRef.current = event.currentTarget
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
@@ -77,9 +92,7 @@ export function CanvasContentWorkspace({
 
   const finishPan = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (panPointerRef.current !== event.pointerId) return
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
-    panPointerRef.current = null
-    panStartRef.current = null
+    resetPointerInteractionState()
   }
 
   const sourceLeft = sourceMetrics ? (WORLD_WIDTH - sourceMetrics.width) / 2 : (WORLD_WIDTH - SOURCE_WIDTH) / 2
@@ -105,6 +118,8 @@ export function CanvasContentWorkspace({
         onPointerMove={handlePointerMove}
         onPointerUp={finishPan}
         onPointerCancel={finishPan}
+        onLostPointerCapture={finishPan}
+        onDoubleClick={(event) => event.preventDefault()}
       >
         <div className="canvas-world-anchor">
           <div

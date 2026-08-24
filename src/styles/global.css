@@ -1622,6 +1622,74 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 }
 .content-split-divider-controls { display: none; }
 
+/* Unified split writing surface: only the compact handle may resize panes. */
+.resizable-content-split { position: relative; }
+.content-split-divider {
+  pointer-events: none;
+  cursor: default !important;
+  background: #edf1f5;
+}
+.content-split-divider::before { display: none; }
+.content-split-controls {
+  z-index: 12;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  pointer-events: none;
+}
+.content-split-controls .content-split-ratio-controls {
+  position: static;
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+  background: rgb(255 255 255 / 92%);
+  border: 1px solid #d3dae4;
+  box-shadow: none;
+  pointer-events: auto;
+}
+.content-split-drag-handle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  min-width: 40px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  color: #66758a;
+  font-size: 11px;
+  line-height: 1;
+  background: rgb(255 255 255 / 90%);
+  border-color: #d3dae4;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+}
+.content-split-drag-handle:active { cursor: grabbing; }
+.content-split-controls--horizontal .content-split-drag-handle span { transform: scaleY(0.8); }
+
+.content-source-panel { position: relative; }
+.content-source-annotation-layer {
+  z-index: 5;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.content-source-annotation-layer > .annotation-canvas { z-index: 1; }
+.annotation-canvas--interactive,
+.tiled-annotation-surface--interactive,
+.content-source-panel,
+.content-notes-panel,
+.horizontal-writing-workspace {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .horizontal-writing-scroll.is-pannable { cursor: grab; touch-action: none; }
 .horizontal-writing-scroll.is-pannable:active { cursor: grabbing; }
 
