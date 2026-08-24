@@ -5,6 +5,7 @@ import { CanvasContentWorkspace } from './CanvasContentWorkspace'
 import { ResizableSplit } from './ResizableSplit'
 import { HorizontalWritingWorkspace } from './HorizontalWritingWorkspace'
 import { ContentCanvasZoomControls } from './ContentCanvasZoomControls'
+import { UnifiedSplitAnnotationInput } from './UnifiedSplitAnnotationInput'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
 import type { ContentViewMode, ContentWorkspaceState, ProblemContentBlock } from '../../types/content'
 import type { LoadedPdfDocument } from '../../types/pdf'
@@ -61,6 +62,9 @@ export function ProblemFocusView({
     onAddStroke,
     onEraseStrokes,
   }
+  const usesUnifiedSplitInput = annotationTool === 'pen' || annotationTool === 'highlighter'
+  const sourceRenderAnnotations = usesUnifiedSplitInput ? { ...sourceAnnotations, activeTool: 'none' as const } : sourceAnnotations
+  const workspaceRenderAnnotations = usesUnifiedSplitInput ? { ...workspaceAnnotations, activeTool: 'none' as const } : workspaceAnnotations
 
   return (
     <div className="problem-focus-view">
@@ -96,13 +100,13 @@ export function ProblemFocusView({
             onRatioChange={(ratio) => onWorkspaceStateChange(viewMode === 'vertical' ? { verticalRatio: ratio } : { horizontalRatio: ratio })}
             label={viewMode === 'vertical' ? '상하 영역 크기 조절' : '좌우 영역 크기 조절'}
             source={(
-              <ProblemPreviewArea loadedPdf={loadedPdf} problem={problem} orientation={viewMode} annotation={sourceAnnotations}
+              <ProblemPreviewArea loadedPdf={loadedPdf} problem={problem} orientation={viewMode} annotation={sourceRenderAnnotations}
                 active={activeSurface === 'source'} onActivate={() => onActiveSurfaceChange('source')} />
             )}
             writing={viewMode === 'horizontal' ? (
               <HorizontalWritingWorkspace
                 title={problem.title}
-                annotation={workspaceAnnotations}
+                annotation={workspaceRenderAnnotations}
                 coordinateMode="problem-logical-y"
                 workspaceHeight={workspaceHeight}
                 active={activeSurface === 'solution'}
@@ -117,7 +121,7 @@ export function ProblemFocusView({
                   workspaceHeight={workspaceHeight}
                   canExpandWorkspace={canExpandWorkspace}
                   annotationStrokes={annotationStrokes}
-                  annotationTool={annotationTool}
+                  annotationTool={workspaceRenderAnnotations.activeTool}
                   annotationSettings={annotationSettings}
                   annotationsVisible={annotationsVisible}
                   onAddStroke={onAddStroke}
@@ -128,6 +132,16 @@ export function ProblemFocusView({
                 />
               </div>
             )}
+            overlay={usesUnifiedSplitInput ? (
+              <UnifiedSplitAnnotationInput
+                orientation={viewMode}
+                title={problem.title}
+                source={sourceAnnotations}
+                writing={workspaceAnnotations}
+                writingWorldSelector={viewMode === 'vertical' ? '.problem-solution-canvas-space' : '.horizontal-writing-world'}
+                onActiveTargetChange={(target) => onActiveSurfaceChange(target === 'source' ? 'source' : 'solution')}
+              />
+            ) : undefined}
           />
         </div>
       )}

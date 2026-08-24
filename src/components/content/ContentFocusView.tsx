@@ -135,7 +135,7 @@ export function ContentFocusView({
             )}
             overlay={usesUnifiedSplitInput ? (
               <UnifiedSplitAnnotationInput orientation={viewMode} title={block.title} source={sourceAnnotations} writing={notesAnnotations}
-                onActiveSurfaceChange={onActiveSurfaceChange} />
+                onActiveTargetChange={(target) => onActiveSurfaceChange(target === 'source' ? 'source' : 'notes')} />
             ) : undefined}
           />
         </div>

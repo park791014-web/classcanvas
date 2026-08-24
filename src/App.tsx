@@ -15,7 +15,7 @@ import { useContentBlocks } from './hooks/useContentBlocks'
 import { useContentWorkspaceStates } from './hooks/useContentWorkspaceStates'
 import { usePdfDocument, validatePdfFile } from './hooks/usePdfDocument'
 import { INITIAL_PROBLEM_WORKSPACE_HEIGHT, useProblemWorkspaces } from './hooks/useProblemWorkspaces'
-import { isFocusContentBlock, isProblemContentBlock } from './types/content'
+import { DEFAULT_CONTENT_VIEW_MODE, isFocusContentBlock, isProblemContentBlock } from './types/content'
 import type { ContentBlock, ContentType, ContentViewMode, SourceRegion } from './types/content'
 import type { AnalysisCandidate, AnalysisProgress, AnalysisScope } from './types/analysis'
 import type { AnnotationSettings, AnnotationTool, DrawingStyle, DrawingTool } from './types/annotation'
@@ -59,7 +59,8 @@ function App() {
   const [whiteboardPageCount, setWhiteboardPageCount] = useState(1)
   const [contentAnnotationSurface, setContentAnnotationSurface] = useState<'source' | 'notes'>('source')
   const [problemAnnotationSurface, setProblemAnnotationSurface] = useState<'source' | 'solution'>('solution')
-  const [contentViewMode, setContentViewMode] = useState<ContentViewMode>('vertical')
+  const [contentViewMode, setContentViewMode] = useState<ContentViewMode>(DEFAULT_CONTENT_VIEW_MODE)
+  const [contentViewModes, setContentViewModes] = useState<Record<string, ContentViewMode>>({})
   const [selectedTool, setSelectedTool] = useState<AnnotationTool>('pen')
   const [drawingSettings, setDrawingSettings] = useState<AnnotationSettings>(DEFAULT_DRAWING_SETTINGS)
   const analysisAbortRef = useRef<AbortController | null>(null)
@@ -209,28 +210,35 @@ function App() {
 
   const handleSaveBlock = useCallback((region: SourceRegion, type: ContentType, title: string) => {
     if (!activeState) return
-    contentBlocks.addBlock({
+    const blockId = contentBlocks.addBlock({
       sourceFileName: activeState.fileName,
       sourcePage: activeState.currentPage,
       sourceRegion: region,
       type,
       title,
     })
+    if (blockId) setContentViewModes((current) => ({ ...current, [blockId]: DEFAULT_CONTENT_VIEW_MODE }))
     setSelectedTool('pen')
   }, [activeState, contentBlocks])
 
   const handleSelectBlock = useCallback((block: ContentBlock) => {
-    if (contentViewMode === 'canvas') setSelectedTool('none')
+    const nextViewMode = contentViewModes[block.id] ?? contentViewMode
+    if (contentViewModes[block.id] === undefined) {
+      setContentViewModes((current) => ({ ...current, [block.id]: nextViewMode }))
+    }
+    setContentViewMode(nextViewMode)
+    if (nextViewMode === 'canvas') setSelectedTool('none')
     else ensureDrawingTool()
     setDocumentState((current) => current ? { ...current, currentPage: block.sourcePage } : current)
     setSelectedContentId(block.id)
     setActiveCandidateId(null)
-  }, [contentViewMode, ensureDrawingTool])
+  }, [contentViewMode, contentViewModes, ensureDrawingTool])
 
   const handleContentViewModeChange = useCallback((mode: ContentViewMode) => {
     if (mode === 'canvas' && contentViewMode !== 'canvas') setSelectedTool('none')
     setContentViewMode(mode)
-  }, [contentViewMode])
+    if (selectedContentId) setContentViewModes((current) => ({ ...current, [selectedContentId]: mode }))
+  }, [contentViewMode, selectedContentId])
 
   const toggleWhiteboard = useCallback(() => {
     ensureDrawingTool()

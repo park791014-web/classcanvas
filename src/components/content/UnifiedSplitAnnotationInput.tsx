@@ -9,7 +9,8 @@ interface UnifiedSplitAnnotationInputProps {
   title: string
   source: ContentAnnotationSurface
   writing: ContentAnnotationSurface
-  onActiveSurfaceChange: (surface: 'source' | 'notes') => void
+  writingWorldSelector?: string
+  onActiveTargetChange: (target: SegmentTarget) => void
 }
 
 type SegmentTarget = 'source' | 'writing'
@@ -43,7 +44,8 @@ export function UnifiedSplitAnnotationInput({
   title,
   source,
   writing,
-  onActiveSurfaceChange,
+  writingWorldSelector,
+  onActiveTargetChange,
 }: UnifiedSplitAnnotationInputProps) {
   const surfaceRef = useRef<HTMLDivElement>(null)
   const activePointerRef = useRef<number | null>(null)
@@ -71,10 +73,11 @@ export function UnifiedSplitAnnotationInput({
     const sourcePane = split.querySelector<HTMLElement>('.content-split-source')
     const writingPane = split.querySelector<HTMLElement>('.content-split-writing')
     const sourceCrop = split.querySelector<HTMLElement>('.content-crop-stage')
-    const writingWorld = split.querySelector<HTMLElement>(orientation === 'vertical' ? '.content-notes-surface' : '.horizontal-writing-world')
+    const writingWorld = split.querySelector<HTMLElement>(writingWorldSelector
+      ?? (orientation === 'vertical' ? '.content-notes-surface' : '.horizontal-writing-world'))
     if (!sourcePane || !writingPane || !sourceCrop || !writingWorld) return null
     return { sourcePane, writingPane, sourceCrop, writingWorld }
-  }, [orientation])
+  }, [orientation, writingWorldSelector])
 
   const classifyTarget = useCallback((point: ScreenPoint, previous?: SegmentTarget): SegmentTarget => {
     const elements = getSplitElements()
@@ -159,8 +162,8 @@ export function UnifiedSplitAnnotationInput({
       else writing.onAddStroke(stroke)
     })
     const finalTarget = segments.at(-1)?.target
-    if (finalTarget) onActiveSurfaceChange(finalTarget === 'source' ? 'source' : 'notes')
-  }, [buildSegments, onActiveSurfaceChange, source, writing])
+    if (finalTarget) onActiveTargetChange(finalTarget)
+  }, [buildSegments, onActiveTargetChange, source, writing])
 
   const appendPointerEvents = useCallback((events: PointerEvent[]) => {
     const surfaceBounds = surfaceRef.current?.getBoundingClientRect()
@@ -188,7 +191,7 @@ export function UnifiedSplitAnnotationInput({
     toolRef.current = source.activeTool
     event.currentTarget.setPointerCapture(event.pointerId)
     const firstPoint = { clientX: event.clientX, clientY: event.clientY, pressure: event.pressure > 0 ? event.pressure : 0.5 }
-    onActiveSurfaceChange(classifyTarget(firstPoint) === 'source' ? 'source' : 'notes')
+    onActiveTargetChange(classifyTarget(firstPoint))
     appendPointerEvents([event.nativeEvent])
   }
 
