@@ -17,7 +17,7 @@ interface HorizontalWritingWorkspaceProps {
   onExpand?: () => void
 }
 
-const HORIZONTAL_WORLD_WIDTH = 4200
+const MIN_HORIZONTAL_WORLD_WIDTH = 4200
 const MIN_HORIZONTAL_WORLD_HEIGHT = 1800
 
 export function HorizontalWritingWorkspace({
@@ -36,8 +36,9 @@ export function HorizontalWritingWorkspace({
   const panStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const captureTargetRef = useRef<HTMLDivElement | null>(null)
   const viewportSize = useElementSize(viewport)
-  const worldHeight = Math.max(MIN_HORIZONTAL_WORLD_HEIGHT, workspaceHeight)
-  const offsetX = (HORIZONTAL_WORLD_WIDTH - viewportSize.width) / 2 - scrollPosition.left
+  const worldWidth = Math.max(MIN_HORIZONTAL_WORLD_WIDTH, viewportSize.width * 5)
+  const worldHeight = Math.max(MIN_HORIZONTAL_WORLD_HEIGHT, workspaceHeight, viewportSize.height * 3)
+  const offsetX = (worldWidth - viewportSize.width) / 2 - scrollPosition.left
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     setScrollPosition({ left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop })
@@ -95,13 +96,13 @@ export function HorizontalWritingWorkspace({
         onDoubleClick={(event) => event.preventDefault()}>
         <div
           className="horizontal-writing-world"
-          style={{ width: HORIZONTAL_WORLD_WIDTH, height: worldHeight }}
-          data-workspace-width={HORIZONTAL_WORLD_WIDTH}
+          style={{ width: worldWidth, height: worldHeight }}
+          data-workspace-width={worldWidth}
           data-workspace-height={worldHeight}
           onPointerDownCapture={onActivate}
         >
           <TiledAnnotationCanvas
-            worldWidth={HORIZONTAL_WORLD_WIDTH}
+            worldWidth={worldWidth}
             worldHeight={worldHeight}
             viewportWidth={viewportSize.width}
             viewportHeight={viewportSize.height}

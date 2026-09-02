@@ -4,7 +4,7 @@ import { ContentFocusView } from './components/content/ContentFocusView'
 import { LayoutDebugPanel } from './components/debug/LayoutDebugPanel'
 import { ProblemFocusView } from './components/content/ProblemFocusView'
 import { LessonNavigator } from './components/layout/LessonNavigator'
-import { LessonWorkspace } from './components/layout/LessonWorkspace'
+import { LessonWorkspace, type PdfReturnAnchor } from './components/layout/LessonWorkspace'
 import { ToolBar } from './components/layout/ToolBar'
 import { TopBar } from './components/layout/TopBar'
 import { WhiteboardView } from './components/whiteboard/WhiteboardView'
@@ -61,6 +61,8 @@ function App() {
   const [problemAnnotationSurface, setProblemAnnotationSurface] = useState<'source' | 'solution'>('solution')
   const [contentViewMode, setContentViewMode] = useState<ContentViewMode>(DEFAULT_CONTENT_VIEW_MODE)
   const [contentViewModes, setContentViewModes] = useState<Record<string, ContentViewMode>>({})
+  const [latestPdfAnchor, setLatestPdfAnchor] = useState<PdfReturnAnchor | null>(null)
+  const [sourceReturnAnchor, setSourceReturnAnchor] = useState<PdfReturnAnchor | null>(null)
   const [selectedTool, setSelectedTool] = useState<AnnotationTool>('pen')
   const [drawingSettings, setDrawingSettings] = useState<AnnotationSettings>(DEFAULT_DRAWING_SETTINGS)
   const analysisAbortRef = useRef<AbortController | null>(null)
@@ -218,8 +220,9 @@ function App() {
       title,
     })
     if (blockId) setContentViewModes((current) => ({ ...current, [blockId]: DEFAULT_CONTENT_VIEW_MODE }))
+    if (latestPdfAnchor) setSourceReturnAnchor({ ...latestPdfAnchor, sourceRegion: region, restoreKey: Date.now() })
     setSelectedTool('pen')
-  }, [activeState, contentBlocks])
+  }, [activeState, contentBlocks, latestPdfAnchor])
 
   const handleSelectBlock = useCallback((block: ContentBlock) => {
     const nextViewMode = contentViewModes[block.id] ?? contentViewMode
@@ -230,9 +233,23 @@ function App() {
     if (nextViewMode === 'canvas') setSelectedTool('none')
     else ensureDrawingTool()
     setDocumentState((current) => current ? { ...current, currentPage: block.sourcePage } : current)
+    if (latestPdfAnchor) setSourceReturnAnchor({ ...latestPdfAnchor, pageNumber: block.sourcePage, sourceRegion: block.sourceRegion, restoreKey: Date.now() })
     setSelectedContentId(block.id)
     setActiveCandidateId(null)
-  }, [contentViewMode, contentViewModes, ensureDrawingTool])
+  }, [contentViewMode, contentViewModes, ensureDrawingTool, latestPdfAnchor])
+
+  const returnToSource = useCallback(() => {
+    setWorkspaceMode('textbook')
+    setSelectedContentId(null)
+    if (!sourceReturnAnchor) return
+    setDocumentState((current) => current ? {
+      ...current,
+      currentPage: sourceReturnAnchor.pageNumber,
+      scale: sourceReturnAnchor.scale,
+      zoomMode: sourceReturnAnchor.zoomMode,
+    } : current)
+    setSourceReturnAnchor((current) => current ? { ...current, restoreKey: Date.now() } : current)
+  }, [sourceReturnAnchor])
 
   const handleContentViewModeChange = useCallback((mode: ContentViewMode) => {
     if (mode === 'canvas' && contentViewMode !== 'canvas') setSelectedTool('none')
@@ -440,7 +457,7 @@ function App() {
             onPreviousPage={() => setWhiteboardPage((current) => Math.max(1, current - 1))}
             onNextPage={() => setWhiteboardPage((current) => Math.min(whiteboardPageCount, current + 1))}
             onAddPage={addWhiteboardPage}
-            onReturnToTextbook={() => setWorkspaceMode('textbook')}
+            onReturnToTextbook={returnToSource}
           />
         ) : focusedProblem && loadedPdf ? (
           <section className="lesson-workspace" aria-label="문제 집중 보기">
@@ -453,7 +470,7 @@ function App() {
               annotationsVisible={problemAnnotations.isVisible}
               onAddStroke={problemAnnotations.addStroke}
               onEraseStrokes={problemAnnotations.eraseStrokes}
-              onReturnToTextbook={() => setSelectedContentId(null)}
+              onReturnToTextbook={returnToSource}
               workspaceHeight={problemWorkspace.workspaceHeight}
               canExpandWorkspace={problemWorkspace.canExpand}
               onExpandWorkspace={problemWorkspace.expandWorkspace}
@@ -500,7 +517,7 @@ function App() {
               onViewModeChange={handleContentViewModeChange}
               workspaceState={contentWorkspaceState.state}
               onWorkspaceStateChange={contentWorkspaceState.updateState}
-              onReturnToTextbook={() => setSelectedContentId(null)}
+              onReturnToTextbook={returnToSource}
             />
           </section>
         ) : (
@@ -554,6 +571,8 @@ function App() {
                 onClose={() => { setAnalysisReviewOpen(false); setEditingCandidateRegionId(null) }}
               />
             ) : undefined}
+            returnAnchor={sourceReturnAnchor}
+            onViewportAnchorChange={setLatestPdfAnchor}
           />
         )}
       </PdfDropZone>
@@ -571,7 +590,9 @@ function App() {
         onToggleVisibility={activeAnnotations.toggleVisibility}
         allowRegionSelect={workspaceMode === 'textbook' && !focusedProblem && !focusedContent}
         isWhiteboard={workspaceMode === 'whiteboard'}
+        isFocusView={Boolean(focusedProblem || focusedContent)}
         onToggleWhiteboard={toggleWhiteboard}
+        onReturnToSource={returnToSource}
       />
       <LayoutDebugPanel />
     </div>

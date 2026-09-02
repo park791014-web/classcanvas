@@ -34,6 +34,19 @@ interface LessonWorkspaceProps {
   onCandidateRegionChange: (candidateId: string, region: SourceRegion) => void
   onCancelCandidateRegionEdit: () => void
   reviewPanel?: ReactNode
+  returnAnchor?: PdfReturnAnchor | null
+  onViewportAnchorChange?: (anchor: PdfReturnAnchor) => void
+}
+
+export interface PdfReturnAnchor {
+  documentId: string
+  pageNumber: number
+  scrollLeft: number
+  scrollTop: number
+  scale: number
+  zoomMode: ZoomMode
+  sourceRegion?: SourceRegion
+  restoreKey: number
 }
 
 const FIT_EDGE_GAP = 2
@@ -42,6 +55,9 @@ interface PinchGestureState {
   pointers: Map<number, { x: number; y: number }>
   initialDistance: number
   initialScale: number
+  initialCenter: { x: number; y: number }
+  initialScrollLeft: number
+  initialScrollTop: number
 }
 
 function pointerDistance(points: { x: number; y: number }[]) {
@@ -72,6 +88,8 @@ export function LessonWorkspace({
   onCandidateRegionChange,
   onCancelCandidateRegionEdit,
   reviewPanel,
+  returnAnchor,
+  onViewportAnchorChange,
 }: LessonWorkspaceProps) {
   const [viewportElement, setViewportElement] = useState<HTMLDivElement | null>(null)
   const viewportSize = useElementSize(viewportElement)
@@ -80,7 +98,11 @@ export function LessonWorkspace({
   const [isRendering, setIsRendering] = useState(false)
   const [renderError, setRenderError] = useState<string | null>(null)
   const previousPageRef = useRef<number | null>(null)
-  const pinchGestureRef = useRef<PinchGestureState>({ pointers: new Map(), initialDistance: 0, initialScale: 1 })
+  const restoredAnchorKeyRef = useRef<number | null>(null)
+  const pinchGestureRef = useRef<PinchGestureState>({
+    pointers: new Map(), initialDistance: 0, initialScale: 1,
+    initialCenter: { x: 0, y: 0 }, initialScrollLeft: 0, initialScrollTop: 0,
+  })
 
   const handleRenderStateChange = useCallback((rendering: boolean, nextError?: string) => {
     setIsRendering(rendering)
@@ -123,7 +145,10 @@ export function LessonWorkspace({
     const pageChanged = previousPageRef.current !== documentState.currentPage
     previousPageRef.current = documentState.currentPage
     if (!activeTarget || activeTarget.sourcePage !== documentState.currentPage) {
-      if (pageChanged) viewportElement.scrollTo({ left: 0, top: 0 })
+      const restoringReturnAnchor = Boolean(returnAnchor && returnAnchor.documentId === loadedPdf?.documentId
+        && returnAnchor.pageNumber === documentState.currentPage
+      )
+      if (pageChanged && !restoringReturnAnchor) viewportElement.scrollTo({ left: 0, top: 0 })
       return
     }
     const region = activeTarget.sourceRegion
@@ -132,10 +157,10 @@ export function LessonWorkspace({
       top: Math.max(0, coordinateSpace.offsetTop + pageMetrics.height * (region.y + region.height / 2) - viewportElement.clientHeight / 2),
       behavior: 'smooth',
     })
-  }, [activeAnalysisCandidate, activeContentBlock, coordinateSpace, documentState, pageMetrics, viewportElement])
+  }, [activeAnalysisCandidate, activeContentBlock, coordinateSpace, documentState, loadedPdf?.documentId, pageMetrics, returnAnchor, viewportElement])
 
   const hasDocument = Boolean(loadedPdf && documentState)
-  const pinchEnabled = hasDocument && annotationTool === 'none'
+  const pinchEnabled = hasDocument
 
   const handlePinchPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!pinchEnabled || event.pointerType !== 'touch' || !documentState) return
@@ -144,8 +169,14 @@ export function LessonWorkspace({
     gesture.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
     event.preventDefault()
     if (gesture.pointers.size === 2) {
-      gesture.initialDistance = pointerDistance([...gesture.pointers.values()])
+      const points = [...gesture.pointers.values()]
+      gesture.initialDistance = pointerDistance(points)
       gesture.initialScale = documentState.scale
+      gesture.initialCenter = { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 }
+      gesture.initialScrollLeft = event.currentTarget.scrollLeft
+      gesture.initialScrollTop = event.currentTarget.scrollTop
+      window.dispatchEvent(new Event('lessoncanvas:cancel-drawing'))
+      event.stopPropagation()
     }
   }
 
@@ -155,14 +186,27 @@ export function LessonWorkspace({
     if (!pinchEnabled || event.pointerType !== 'touch' || !previousPoint) return
     gesture.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
     event.preventDefault()
-    if (gesture.pointers.size === 1) {
+    if (gesture.pointers.size === 1 && annotationTool === 'none') {
       event.currentTarget.scrollLeft += previousPoint.x - event.clientX
       event.currentTarget.scrollTop += previousPoint.y - event.clientY
       return
     }
     if (gesture.pointers.size !== 2 || gesture.initialDistance <= 0) return
     const nextDistance = pointerDistance([...gesture.pointers.values()])
-    onScaleChange(Number((gesture.initialScale * nextDistance / gesture.initialDistance).toFixed(3)), 'manual')
+    const points = [...gesture.pointers.values()]
+    const currentCenter = { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 }
+    const nextScale = Number((gesture.initialScale * nextDistance / gesture.initialDistance).toFixed(3))
+    const scaleRatio = nextScale / gesture.initialScale
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const initialLocalX = gesture.initialCenter.x - bounds.left
+    const initialLocalY = gesture.initialCenter.y - bounds.top
+    const currentLocalX = currentCenter.x - bounds.left
+    const currentLocalY = currentCenter.y - bounds.top
+    onScaleChange(nextScale, 'manual')
+    requestAnimationFrame(() => event.currentTarget.scrollTo({
+      left: (gesture.initialScrollLeft + initialLocalX) * scaleRatio - currentLocalX,
+      top: (gesture.initialScrollTop + initialLocalY) * scaleRatio - currentLocalY,
+    }))
   }
 
   const finishPinchPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -171,6 +215,27 @@ export function LessonWorkspace({
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     gesture.pointers.delete(event.pointerId)
     if (gesture.pointers.size < 2) gesture.initialDistance = 0
+  }
+
+  useEffect(() => {
+    if (!loadedPdf || !documentState || !viewportElement || !returnAnchor) return
+    if (returnAnchor.documentId !== loadedPdf.documentId || returnAnchor.pageNumber !== documentState.currentPage) return
+    if (restoredAnchorKeyRef.current === returnAnchor.restoreKey) return
+    restoredAnchorKeyRef.current = returnAnchor.restoreKey
+    requestAnimationFrame(() => viewportElement.scrollTo({ left: returnAnchor.scrollLeft, top: returnAnchor.scrollTop }))
+  }, [documentState, loadedPdf, returnAnchor, viewportElement, pageMetrics])
+
+  const reportViewportAnchor = () => {
+    if (!loadedPdf || !documentState || !viewportElement || !onViewportAnchorChange) return
+    onViewportAnchorChange({
+      documentId: loadedPdf.documentId,
+      pageNumber: documentState.currentPage,
+      scrollLeft: viewportElement.scrollLeft,
+      scrollTop: viewportElement.scrollTop,
+      scale: documentState.scale,
+      zoomMode: documentState.zoomMode,
+      restoreKey: 0,
+    })
   }
   const annotationMetrics = documentState && pageMetrics
     && pageMetrics.pageNumber === documentState.currentPage
@@ -201,10 +266,11 @@ export function LessonWorkspace({
             className={`pdf-scroll-viewport${pinchEnabled ? ' is-pinch-enabled' : ''}`}
             ref={setViewportElement}
             aria-busy={isRendering}
-            onPointerDown={handlePinchPointerDown}
-            onPointerMove={handlePinchPointerMove}
-            onPointerUp={finishPinchPointer}
-            onPointerCancel={finishPinchPointer}
+            onPointerDownCapture={handlePinchPointerDown}
+            onPointerMoveCapture={handlePinchPointerMove}
+            onPointerUpCapture={finishPinchPointer}
+            onPointerCancelCapture={finishPinchPointer}
+            onScroll={reportViewportAnchor}
           >
             <div
               className="pdf-coordinate-space"

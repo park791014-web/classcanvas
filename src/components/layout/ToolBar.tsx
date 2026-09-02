@@ -15,7 +15,9 @@ interface ToolBarProps {
   onToggleVisibility: () => void
   allowRegionSelect: boolean
   isWhiteboard: boolean
+  isFocusView: boolean
   onToggleWhiteboard: () => void
+  onReturnToSource: () => void
 }
 
 const COLORS = [
@@ -24,6 +26,7 @@ const COLORS = [
   { value: '#2563eb', label: '파랑' },
   { value: '#16a34a', label: '초록' },
   { value: '#facc15', label: '노랑' },
+  { value: '#A78BFA', label: '보라' },
 ]
 
 const WIDTHS: { value: StrokeWidthPreset; label: string }[] = [
@@ -53,30 +56,30 @@ export function ToolBar({
   onToggleVisibility,
   allowRegionSelect,
   isWhiteboard,
+  isFocusView,
   onToggleWhiteboard,
+  onReturnToSource,
 }: ToolBarProps) {
   const drawingTool = activeTool === 'pen' || activeTool === 'highlighter' ? activeTool : null
   const drawingStyle = drawingTool ? settings[drawingTool] : null
   const pickerColor = drawingStyle?.color ?? settings.pen.color
   const isPresetColor = COLORS.some((color) => color.value === drawingStyle?.color)
 
-  const renderModeControls = (position: '왼쪽' | '오른쪽') => (
-    <div className={`toolbar-mode-controls${position === '오른쪽' ? ' toolbar-duplicate-group' : ''}`} aria-label={`${position} 수업 화면 모드`}>
-      {(position === '왼쪽' ? ['board', 'region'] : ['region', 'board']).map((control) => control === 'board' ? (
-        <button key="board" type="button" className={isWhiteboard ? 'is-active' : undefined} aria-pressed={isWhiteboard}
-          onClick={onToggleWhiteboard}>{isWhiteboard ? '교과서' : '빈 칠판'}</button>
-      ) : (
-        <button key="region" type="button" className={activeTool === 'region-select' ? 'is-active' : undefined}
-          aria-pressed={activeTool === 'region-select'} disabled={!hasDocument || !allowRegionSelect}
-          onClick={() => onToolChange('region-select')}>영역 선택</button>
-      ))}
+  const renderModeControls = () => (
+    <div className="toolbar-mode-controls" aria-label="툴모둠">
+      <button type="button" className="toolbar-context-action" onClick={isWhiteboard || isFocusView ? onReturnToSource : onToggleWhiteboard}>
+        {isWhiteboard || isFocusView ? '원문으로' : '빈 칠판'}
+      </button>
+      <button type="button" className={activeTool === 'region-select' ? 'is-active' : undefined}
+        aria-pressed={activeTool === 'region-select'} disabled={!hasDocument || !allowRegionSelect}
+        onClick={() => onToolChange('region-select')}>영역 선택</button>
+      <button type="button" className={`toolbar-navigation-tool${activeTool === 'none' ? ' is-active' : ''}`}
+        aria-pressed={activeTool === 'none'} disabled={!hasDocument} onClick={() => onToolChange('none')}>탐색</button>
     </div>
   )
 
-  const renderDrawingTools = (position: '왼쪽' | '오른쪽') => (
-    <div className={`tool-button-group${position === '오른쪽' ? ' toolbar-duplicate-group' : ''}`} aria-label={`${position} 빠른 탐색 및 판서 도구`}>
-      <button type="button" className={activeTool === 'none' ? 'is-active' : undefined} aria-pressed={activeTool === 'none'}
-        disabled={!hasDocument} onClick={() => onToolChange('none')}>탐색</button>
+  const renderDrawingTools = () => (
+    <div className="tool-button-group" aria-label="펜도구">
       {DRAWING_TOOLS.map(({ tool, label }) => (
         <button type="button" key={tool} className={activeTool === tool ? 'is-active' : undefined} aria-pressed={activeTool === tool}
           disabled={!hasDocument || !isVisible} onClick={() => onToolChange(tool)}>{label}</button>
@@ -88,9 +91,6 @@ export function ToolBar({
     <footer className="tool-bar" aria-label="판서 도구 영역">
       <strong className="toolbar-label">판서도구</strong>
       <div className="annotation-toolbar-controls">
-        {renderModeControls('왼쪽')}
-        {renderDrawingTools('왼쪽')}
-
         <div className="color-controls" aria-label="선 색상">
           {COLORS.map((color) => (
             <button type="button" key={color.value} className={drawingStyle?.color === color.value ? 'color-button is-active' : 'color-button'}
@@ -112,8 +112,8 @@ export function ToolBar({
           ))}
         </div>
 
-        {renderDrawingTools('오른쪽')}
-        {renderModeControls('오른쪽')}
+        {renderDrawingTools()}
+        {renderModeControls()}
       </div>
       <div className="history-controls" aria-label="판서 기록 제어">
         <button type="button" className="history-action history-action--undo" disabled={!hasDocument || !canUndo} onClick={onUndo} aria-label="실행 취소" title="실행 취소">

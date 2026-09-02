@@ -47,24 +47,25 @@ export function ProblemWorkspace({
     setLogicalWidth(solutionSize.width)
   }, [logicalWidth, solutionSize.width])
   const workspaceWidth = Math.max(1, logicalWidth ?? solutionSize.width)
+  const logicalWorkspaceHeight = Math.max(workspaceHeight, window.innerHeight * 5)
 
   const annotationMetrics = useMemo<PdfViewportMetrics>(() => ({
     pageNumber: 1,
     scale: 1,
     width: workspaceWidth,
-    height: workspaceHeight,
+    height: logicalWorkspaceHeight,
     baseWidth: workspaceWidth,
-    baseHeight: workspaceHeight,
-    outputScale: getProblemOutputScale(workspaceHeight),
-  }), [workspaceHeight, workspaceWidth])
+    baseHeight: logicalWorkspaceHeight,
+    outputScale: getProblemOutputScale(logicalWorkspaceHeight),
+  }), [logicalWorkspaceHeight, workspaceWidth])
 
   return (
     <section className={`problem-solution-section${active ? ' is-active' : ''}`} aria-label={`${title} 풀이 판서 공간`} onPointerDownCapture={onActivate}>
       <div
         className="problem-solution-canvas-space"
         ref={setSolutionElement}
-        style={{ width: logicalWidth ?? '100%', height: workspaceHeight }}
-        data-workspace-height={workspaceHeight}
+        style={{ width: logicalWidth ?? '100%', height: logicalWorkspaceHeight }}
+        data-workspace-height={logicalWorkspaceHeight}
       >
         <AnnotationCanvas
           metrics={annotationMetrics}

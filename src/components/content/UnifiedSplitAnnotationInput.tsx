@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { AnnotationPoint, AnnotationStroke, DrawingTool, StrokeWidthPreset } from '../../types/annotation'
 import { safelyReleasePointerCapture, usePointerInteractionReset } from '../../hooks/usePointerInteractionReset'
 import { CLASSROOM_STROKE_WIDTH_REFERENCE } from '../annotation/annotationSizing'
@@ -66,6 +66,11 @@ export function UnifiedSplitAnnotationInput({
   }, [])
 
   usePointerInteractionReset(resetPointerInteractionState)
+
+  useEffect(() => {
+    window.addEventListener('lessoncanvas:cancel-drawing', resetPointerInteractionState)
+    return () => window.removeEventListener('lessoncanvas:cancel-drawing', resetPointerInteractionState)
+  }, [resetPointerInteractionState])
 
   const getSplitElements = useCallback(() => {
     const split = surfaceRef.current?.closest('.resizable-content-split')
@@ -211,7 +216,14 @@ export function UnifiedSplitAnnotationInput({
   const activeTool = source.activeTool === 'pen' || source.activeTool === 'highlighter' ? source.activeTool : null
   const previewStyle = activeTool ? source.settings[activeTool] : null
   const previewWidth = activeTool && previewStyle ? WIDTHS[activeTool][previewStyle.widthPreset] * CLASSROOM_STROKE_WIDTH_REFERENCE : 1
-  const path = previewPoints.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(' ')
+  const path = previewPoints.length === 1
+    ? `M ${previewPoints[0].x.toFixed(2)} ${previewPoints[0].y.toFixed(2)} l 0.01 0`
+    : previewPoints.reduce((result, point, index) => {
+      if (index === 0) return `M ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
+      if (index === previewPoints.length - 1) return `${result} L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`
+      const next = previewPoints[index + 1]
+      return `${result} Q ${point.x.toFixed(2)} ${point.y.toFixed(2)} ${((point.x + next.x) / 2).toFixed(2)} ${((point.y + next.y) / 2).toFixed(2)}`
+    }, '')
 
   return (
     <div

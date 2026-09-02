@@ -13,6 +13,8 @@ import { ResizableSplit } from './ResizableSplit'
 import { HorizontalWritingWorkspace } from './HorizontalWritingWorkspace'
 import { ContentCanvasZoomControls } from './ContentCanvasZoomControls'
 import { UnifiedSplitAnnotationInput } from './UnifiedSplitAnnotationInput'
+import { SplitGestureViewport } from './SplitGestureViewport'
+import { useDragToScroll } from '../../hooks/useDragToScroll'
 
 export interface ContentAnnotationSurface {
   strokes: AnnotationStroke[]
@@ -52,18 +54,20 @@ function NotesSurface({ annotation, active, title, onActivate }: {
     if (logicalWidth || size.width <= 0) return
     setLogicalWidth(size.width)
   }, [logicalWidth, size.width])
+  const logicalHeight = Math.max(CONTENT_NOTES_LOGICAL_HEIGHT, size.height * 5)
   const metrics = useMemo<PdfViewportMetrics>(() => ({
     pageNumber: 1, scale: 1,
-    width: Math.max(1, logicalWidth ?? 1), height: CONTENT_NOTES_LOGICAL_HEIGHT,
-    baseWidth: Math.max(1, logicalWidth ?? 1), baseHeight: CONTENT_NOTES_LOGICAL_HEIGHT,
+    width: Math.max(1, logicalWidth ?? 1), height: logicalHeight,
+    baseWidth: Math.max(1, logicalWidth ?? 1), baseHeight: logicalHeight,
     outputScale: Math.min(window.devicePixelRatio || 1, 1.25),
-  }), [logicalWidth])
+  }), [logicalHeight, logicalWidth])
+  const panHandlers = useDragToScroll(annotation.activeTool === 'none')
 
   return (
     <section className={`content-notes-panel${active ? ' is-active' : ''}`} onPointerDownCapture={onActivate}>
-      <div className="content-notes-scroll" ref={setElement}>
+      <div className={`content-notes-scroll${annotation.activeTool === 'none' ? ' is-pannable' : ''}`} ref={setElement} {...panHandlers}>
         {logicalWidth && (
-          <div className="content-notes-surface" style={{ width: logicalWidth, height: CONTENT_NOTES_LOGICAL_HEIGHT }} data-workspace-height={CONTENT_NOTES_LOGICAL_HEIGHT}>
+          <div className="content-notes-surface" style={{ width: logicalWidth, height: logicalHeight }} data-workspace-height={logicalHeight}>
             <AnnotationCanvas metrics={metrics} strokes={annotation.strokes} activeTool={annotation.activeTool} settings={annotation.settings}
               isVisible={annotation.isVisible} onAddStroke={annotation.onAddStroke} onEraseStrokes={annotation.onEraseStrokes}
               ariaLabel={`${title} 설명 판서 영역`} coordinateScope="content-workspace" coordinateMode="problem-logical-y"
@@ -87,7 +91,7 @@ export function ContentFocusView({
   return (
     <section className="content-focus-view" aria-labelledby="content-focus-title">
       <header className="content-focus-header">
-        <button type="button" className="return-button" onClick={onReturnToTextbook}>← 교과서로</button>
+        <button type="button" className="return-button" onClick={onReturnToTextbook}>← 원문으로</button>
         <div className="content-focus-title-block">
           <span className={`content-type-badge content-type-badge--${block.type}`}>{CONTENT_TYPE_LABELS[block.type]}</span>
           <h2 id="content-focus-title" title={block.title}>{block.title}</h2>
@@ -112,6 +116,7 @@ export function ContentFocusView({
         />
       ) : (
         <div className="content-focus-body">
+          <SplitGestureViewport activeTool={sourceAnnotations.activeTool} state={workspaceState} onStateChange={onWorkspaceStateChange}>
           <ResizableSplit
             orientation={viewMode}
             ratio={viewMode === 'vertical' ? workspaceState.verticalRatio : workspaceState.horizontalRatio}
@@ -138,6 +143,7 @@ export function ContentFocusView({
                 onActiveTargetChange={(target) => onActiveSurfaceChange(target === 'source' ? 'source' : 'notes')} />
             ) : undefined}
           />
+          </SplitGestureViewport>
         </div>
       )}
     </section>

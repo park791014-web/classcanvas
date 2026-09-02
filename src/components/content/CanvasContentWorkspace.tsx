@@ -9,6 +9,7 @@ import type { LoadedPdfDocument, PdfViewportMetrics } from '../../types/pdf'
 import type { ContentAnnotationSurface } from './ContentFocusView'
 import { ContentCropCanvas } from './ProblemCropCanvas'
 import { safelyReleasePointerCapture, usePointerInteractionReset } from '../../hooks/usePointerInteractionReset'
+import { useCanvasPinchPan } from '../../hooks/useCanvasPinchPan'
 
 interface CanvasContentWorkspaceProps {
   loadedPdf: LoadedPdfDocument
@@ -48,6 +49,7 @@ export function CanvasContentWorkspace({
   const panPointerRef = useRef<number | null>(null)
   const panStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
   const captureTargetRef = useRef<HTMLDivElement | null>(null)
+  const pinchHandlers = useCanvasPinchPan(state, onStateChange)
   const worldHeight = Math.max(MIN_WORLD_HEIGHT, workspaceHeight + 1200, SOURCE_TOP + (sourceMetrics?.height ?? 0) + 1800)
 
   const clampOffset = useCallback((offsetX: number, offsetY: number) => {
@@ -114,6 +116,7 @@ export function CanvasContentWorkspace({
       <div
         ref={setViewportElement}
         className={`canvas-workspace-viewport${workspaceAnnotations.activeTool === 'none' ? ' is-pannable' : ''}`}
+        {...pinchHandlers}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={finishPan}

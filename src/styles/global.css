@@ -6,6 +6,12 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Keep the 0.3 toolbar group order canonical after all responsive legacy rules. */
+.annotation-toolbar-controls > .color-controls { order: 1; }
+.annotation-toolbar-controls > .width-controls { order: 2; }
+.annotation-toolbar-controls > .tool-button-group { order: 3; }
+.annotation-toolbar-controls > .toolbar-mode-controls { order: 4; }
+
 * { box-sizing: border-box; }
 
 html, body, #root {
@@ -1725,6 +1731,47 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
   pointer-events: none;
 }
 
+/* 0.3 classroom navigation and writing-surface refinements */
+.annotation-toolbar-controls { grid-template-columns: repeat(4, auto); }
+.annotation-toolbar-controls > .color-controls { order: 1; border-left: 0; }
+.annotation-toolbar-controls > .width-controls { order: 2; }
+.annotation-toolbar-controls > .tool-button-group { order: 3; }
+.annotation-toolbar-controls > .toolbar-mode-controls { order: 4; }
+.toolbar-mode-controls button { width: 64px; min-width: 64px; }
+.tool-button-group button { width: 58px; min-width: 58px; }
+.toolbar-navigation-tool {
+  color: #24486f;
+  background: #edf4fb;
+  border-color: #b7cbe1;
+}
+.toolbar-navigation-tool:hover { background: #e1edf8; border-color: #8faecc; }
+.toolbar-navigation-tool.is-active { color: #fff; background: #3f668f; border-color: #294d74; }
+
+.split-gesture-viewport { position: relative; width: 100%; height: 100%; overflow: hidden; touch-action: none; }
+.split-gesture-content { width: 100%; height: 100%; transform-origin: center center; will-change: transform; }
+.split-gesture-content > .resizable-content-split { width: 100%; height: 100%; }
+
+.content-notes-scroll,
+.problem-solution-scroll,
+.horizontal-writing-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+}
+.content-notes-scroll::-webkit-scrollbar,
+.problem-solution-scroll::-webkit-scrollbar,
+.horizontal-writing-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.content-notes-scroll.is-pannable,
+.problem-solution-scroll.is-pannable { cursor: grab; touch-action: none; }
+.content-notes-scroll.is-pannable:active,
+.problem-solution-scroll.is-pannable:active { cursor: grabbing; }
+
+@media (min-width: 768px) and (max-width: 1199px),
+       (pointer: coarse) and (hover: none) and (orientation: landscape) and (min-width: 600px) and (max-width: 900px) {
+  .toolbar-mode-controls button,
+  .tool-button-group button { width: 46px; min-width: 46px; height: 40px; padding-inline: 2px; }
+}
+
 .content-source-panel { position: relative; }
 .content-source-annotation-layer {
   z-index: 5;
@@ -2254,3 +2301,9 @@ button:disabled { color: #9aa5b5; background: #f2f4f7; cursor: not-allowed; }
 
 .layout-debug-panel strong,
 .layout-debug-panel b { color: #fde68a; }
+
+/* Final 0.3 responsive toolbar precedence. */
+.annotation-toolbar-controls > .color-controls { order: 1; }
+.annotation-toolbar-controls > .width-controls { order: 2; }
+.annotation-toolbar-controls > .tool-button-group { order: 3; }
+.annotation-toolbar-controls > .toolbar-mode-controls { order: 4; }

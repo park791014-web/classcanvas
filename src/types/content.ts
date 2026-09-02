@@ -16,6 +16,9 @@ export interface ContentWorkspaceState {
   canvasViewportInitialized: boolean
   verticalRatio: number
   horizontalRatio: number
+  splitScale: number
+  splitOffsetX: number
+  splitOffsetY: number
 }
 
 export type LegacyContentType =

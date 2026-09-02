@@ -5,6 +5,7 @@ import { useElementSize } from '../../hooks/useElementSize'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
 import type { ContentWorkspaceState } from '../../types/content'
 import { MAX_ZOOM_SCALE, MIN_MANUAL_ZOOM_SCALE } from '../../constants/zoom'
+import { useCanvasPinchPan } from '../../hooks/useCanvasPinchPan'
 
 interface WhiteboardViewProps {
   page: number
@@ -51,6 +52,7 @@ export function WhiteboardView({
   const viewportSize = useElementSize(viewport)
   const panPointerRef = useRef<number | null>(null)
   const panStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
+  const pinchHandlers = useCanvasPinchPan(workspaceState, onWorkspaceStateChange)
 
   const clampOffset = useCallback((offsetX: number, offsetY: number) => {
     const scaledWidth = WORLD_WIDTH * workspaceState.canvasScale
@@ -100,7 +102,7 @@ export function WhiteboardView({
     <section className="lesson-workspace whiteboard-view" aria-label={`빈 칠판 ${page}`}>
       <header className="whiteboard-header">
         <div className="whiteboard-primary-controls">
-          <button type="button" onClick={onReturnToTextbook}>교과서로</button>
+          <button type="button" onClick={onReturnToTextbook}>원문으로</button>
           <button type="button" onClick={() => onWorkspaceStateChange({ canvasOffsetX: 0, canvasOffsetY: 0 })}>중앙 이동</button>
         </div>
         <nav className="whiteboard-page-controls" aria-label="빈 칠판 페이지 이동">
@@ -120,6 +122,7 @@ export function WhiteboardView({
       <div
         ref={setViewport}
         className={`whiteboard-viewport${activeTool === 'none' ? ' is-pannable' : ''}`}
+        {...pinchHandlers}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={finishPan}

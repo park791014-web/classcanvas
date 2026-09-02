@@ -8,6 +8,9 @@ const DEFAULT_WORKSPACE_STATE: ContentWorkspaceState = {
   canvasViewportInitialized: false,
   verticalRatio: 0.35,
   horizontalRatio: 0.35,
+  splitScale: 1,
+  splitOffsetX: 0,
+  splitOffsetY: 0,
 }
 
 export function useContentWorkspaceStates(contentId: string | null) {

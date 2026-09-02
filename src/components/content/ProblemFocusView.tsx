@@ -6,6 +6,8 @@ import { ResizableSplit } from './ResizableSplit'
 import { HorizontalWritingWorkspace } from './HorizontalWritingWorkspace'
 import { ContentCanvasZoomControls } from './ContentCanvasZoomControls'
 import { UnifiedSplitAnnotationInput } from './UnifiedSplitAnnotationInput'
+import { SplitGestureViewport } from './SplitGestureViewport'
+import { useDragToScroll } from '../../hooks/useDragToScroll'
 import type { AnnotationSettings, AnnotationStroke, AnnotationTool } from '../../types/annotation'
 import type { ContentViewMode, ContentWorkspaceState, ProblemContentBlock } from '../../types/content'
 import type { LoadedPdfDocument } from '../../types/pdf'
@@ -65,13 +67,14 @@ export function ProblemFocusView({
   const usesUnifiedSplitInput = annotationTool === 'pen' || annotationTool === 'highlighter'
   const sourceRenderAnnotations = usesUnifiedSplitInput ? { ...sourceAnnotations, activeTool: 'none' as const } : sourceAnnotations
   const workspaceRenderAnnotations = usesUnifiedSplitInput ? { ...workspaceAnnotations, activeTool: 'none' as const } : workspaceAnnotations
+  const verticalPanHandlers = useDragToScroll(workspaceRenderAnnotations.activeTool === 'none')
 
   return (
     <div className="problem-focus-view">
       <header className="problem-focus-controls">
-        <button type="button" onClick={onReturnToTextbook}>← 교과서로</button>
+        <button type="button" onClick={onReturnToTextbook}>← 원문으로</button>
         <div>
-          <span>교과서 p.{problem.sourcePage}</span>
+          <span>원문 p.{problem.sourcePage}</span>
           <strong>{problem.title}</strong>
         </div>
         <div className="content-view-controls" aria-label="문제 보기 설정">
@@ -94,6 +97,7 @@ export function ProblemFocusView({
         />
       ) : (
         <div className="problem-focus-body">
+          <SplitGestureViewport activeTool={annotationTool} state={workspaceState} onStateChange={onWorkspaceStateChange}>
           <ResizableSplit
             orientation={viewMode}
             ratio={viewMode === 'vertical' ? workspaceState.verticalRatio : workspaceState.horizontalRatio}
@@ -115,7 +119,7 @@ export function ProblemFocusView({
                 onExpand={onExpandWorkspace}
               />
             ) : (
-              <div className="problem-solution-scroll">
+              <div className={`problem-solution-scroll${workspaceRenderAnnotations.activeTool === 'none' ? ' is-pannable' : ''}`} {...verticalPanHandlers}>
                 <ProblemWorkspace
                   title={problem.title}
                   workspaceHeight={workspaceHeight}
@@ -143,6 +147,7 @@ export function ProblemFocusView({
               />
             ) : undefined}
           />
+          </SplitGestureViewport>
         </div>
       )}
     </div>

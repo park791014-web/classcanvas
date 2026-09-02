@@ -82,7 +82,11 @@ function drawStroke(
   context.strokeStyle = stroke.color
   context.fillStyle = stroke.color
   context.globalAlpha = stroke.opacity
-  context.lineWidth = Math.max(1, stroke.normalizedWidth * widthReference)
+  const pressures = stroke.points.map((point) => point.pressure).filter((pressure) => Number.isFinite(pressure))
+  const pressureRange = pressures.length > 1 ? Math.max(...pressures) - Math.min(...pressures) : 0
+  const averagePressure = pressures.length ? pressures.reduce((sum, pressure) => sum + pressure, 0) / pressures.length : 0.5
+  const pressureFactor = pressureRange >= 0.08 ? 0.8 + Math.min(1, Math.max(0, averagePressure)) * 0.4 : 1
+  context.lineWidth = Math.max(1, stroke.normalizedWidth * widthReference * pressureFactor)
   context.lineCap = 'round'
   context.lineJoin = 'round'
 
@@ -269,6 +273,12 @@ export function AnnotationCanvas({
   }, [onAddStroke, onEraseStrokes, redraw])
 
   usePointerInteractionReset(resetPointerInteractionState)
+
+  useEffect(() => {
+    const cancelDrawing = () => resetPointerInteractionState(false)
+    window.addEventListener('lessoncanvas:cancel-drawing', cancelDrawing)
+    return () => window.removeEventListener('lessoncanvas:cancel-drawing', cancelDrawing)
+  }, [resetPointerInteractionState])
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!isVisible || (activeTool !== 'pen' && activeTool !== 'highlighter' && activeTool !== 'eraser') || event.button !== 0) return
